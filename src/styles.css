@@ -35,7 +35,9 @@ input, textarea, select { font-size: 16px; }
 #app { height: 100%; }
 
 /* Каркас: экран + нижние вкладки */
-.shell { display: flex; flex-direction: column; height: 100%; height: 100dvh; overflow: hidden; }
+/* Приложение привязано к краям экрана. Не 100dvh: на iPhone с экрана «Домой» при запуске он сначала
+   считается меньше настоящего — и нижняя панель на секунду висит выше, чем надо. */
+.shell { position: fixed; top: 0; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; overflow: hidden; }
 .content { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; overscroll-behavior-y: contain; }
 .screen { padding: calc(var(--safe-top) + 14px) 18px 32px; max-width: 720px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
 .screen-head { display: flex; align-items: flex-end; gap: 14px; }
@@ -111,7 +113,7 @@ input, textarea, select { font-size: 16px; }
 
 /* Шторка снизу */
 .sheet-backdrop { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.55); z-index: 100; display: flex; align-items: flex-end; animation: fade 0.22s ease-out; }
-.sheet { width: 100%; max-height: 92%; max-height: 92dvh; overflow-y: auto; overscroll-behavior: contain; background: var(--panel); border-radius: 22px 22px 0 0; padding: 0 18px calc(var(--safe-bottom) + 18px); display: flex; flex-direction: column; gap: 14px; animation: rise 0.34s cubic-bezier(0.2, 0.9, 0.25, 1); transition: transform 0.25s cubic-bezier(0.2, 0.9, 0.25, 1); }
+.sheet { width: 100%; max-height: 92%; overflow-y: auto; overscroll-behavior: contain; background: var(--panel); border-radius: 22px 22px 0 0; padding: 0 18px calc(var(--safe-bottom) + 18px); display: flex; flex-direction: column; gap: 14px; animation: rise 0.34s cubic-bezier(0.2, 0.9, 0.25, 1); transition: transform 0.25s cubic-bezier(0.2, 0.9, 0.25, 1); }
 .sheet-backdrop.closing { animation: fade-out 0.22s ease-in forwards; }
 .sheet-backdrop.closing .sheet { animation: sink 0.22s ease-in forwards; }
 .sheet-drag { position: sticky; top: 0; z-index: 2; background: var(--panel); padding-top: 10px; padding-bottom: 4px; display: flex; flex-direction: column; gap: 12px; touch-action: none; }
