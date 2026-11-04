@@ -4,7 +4,7 @@ import { parityTitle, uuid } from '../model'
 import type { ClassSlot, WeekParity } from '../model'
 import { addDays, dayMonth, duration, isoWeekday, minutesOfDay, nowSec, startOfWeek, time, weekdayNames } from '../lib/dates'
 import * as store from '../store'
-import { Screen, Segments, Sheet, palette, tint } from '../ui/controls'
+import { Screen, Segments, Sheet, useSheet, palette, tint } from '../ui/controls'
 
 const classColor = palette[0]
 
@@ -107,14 +107,15 @@ const fromTime = (v: string) => {
 }
 
 function ClassEditor({ slot, isNew, onClose }: { slot: ClassSlot; isNew: boolean; onClose: () => void }) {
+  const sheet = useSheet(onClose)
   const [s, setS] = useState(slot)
   const set = <K extends keyof ClassSlot>(k: K, v: ClassSlot[K]) => setS({ ...s, [k]: v })
   const save = () => {
     store.saveClass({ ...s, title: s.title.trim(), endMin: Math.max(s.endMin, s.startMin + 5) })
-    onClose()
+    sheet.close()
   }
   return (
-    <Sheet title={isNew ? 'Новая пара' : 'Пара'} onClose={onClose} action={<button class="btn primary" disabled={!s.title.trim()} onClick={save}>Готово</button>}>
+    <Sheet closing={sheet.closing} title={isNew ? 'Новая пара' : 'Пара'} onClose={sheet.close} action={<button class="btn primary" disabled={!s.title.trim()} onClick={save}>Готово</button>}>
       <div class="field"><input placeholder="Предмет" value={s.title} onInput={(e) => set('title', e.currentTarget.value)} /></div>
       <div class="row">
         <div class="grow">
@@ -145,7 +146,7 @@ function ClassEditor({ slot, isNew, onClose }: { slot: ClassSlot; isNew: boolean
       </div>
       {!isNew && (
         <div class="row">
-          <button class="btn danger" onClick={() => { if (confirm(`Удалить пару «${s.title}»?`)) { store.deleteClass(slot); onClose() } }}>Удалить пару</button>
+          <button class="btn danger" onClick={() => { if (confirm(`Удалить пару «${s.title}»?`)) { store.deleteClass(slot); sheet.close() } }}>Удалить пару</button>
         </div>
       )}
     </Sheet>

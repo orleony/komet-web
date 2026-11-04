@@ -7,25 +7,33 @@ import { analyze } from '../lib/text'
 import type { CaptureKind } from '../lib/text'
 import * as store from '../store'
 import { AreaIcon } from './icons'
-import { Segments, Sheet, areaColor, describeDue, palette, priorityColor, showToast, tint } from './controls'
+import { Segments, Sheet, useSheet, areaColor, describeDue, palette, priorityColor, showToast, tint } from './controls'
 
 /** Задача — цветная пилюля раздела, справа срок. Нажатие на пилюлю — изменить. */
 export function TaskRow({ task }: { task: TaskItem }) {
   const [editing, setEditing] = useState(false)
+  const [checking, setChecking] = useState(false)
+  const done = task.isDone || checking
+  const toggle = () => {
+    if (task.isDone) return store.toggleTask(task)
+    // Сначала видно, что отметили, — потом задача уезжает в «Сделано»
+    setChecking(true)
+    window.setTimeout(() => store.toggleTask(task), 450)
+  }
   const area = store.areaOf(task)
   const color = areaColor(area)
   const due = toDate(task.dueDate)
   const info = due ? describeDue(due, task.isDone) : null
   return (
-    <div class="task">
-      <button class="check" onClick={() => store.toggleTask(task)} aria-label="Готово">
-        {task.isDone ? <CircleCheck size={22} color={color} /> : <Circle size={22} />}
+    <div class={'task' + (checking ? ' checking' : '')}>
+      <button class={'check' + (done ? ' on' : '')} onClick={toggle} aria-label="Готово">
+        {done ? <CircleCheck size={22} color={color} /> : <Circle size={22} />}
       </button>
       <button class="body" onClick={() => setEditing(true)}>
         {task.priority !== Priority.Normal && !task.isDone && (
           <span class="prio" style={{ color: priorityColor[task.priority] }}>{task.priority === Priority.Urgent ? '!!!' : '!!'}</span>
         )}
-        <span class={'pill' + (task.isDone ? ' done' : '')} style={{ color, background: tint(color, 0.16) }}>{task.title}</span>
+        <span class={'pill' + (done ? ' done' : '')} style={{ color, background: tint(color, 0.16) }}>{task.title}</span>
       </button>
       {info && <span class="due" style={{ color: info.color }}>{info.text}</span>}
       {editing && <TaskEditor task={task} onClose={() => setEditing(false)} />}
@@ -61,6 +69,7 @@ const fromInput = (v: string) => {
 }
 
 export function TaskEditor({ task, onClose }: { task: TaskItem; onClose: () => void }) {
+  const sheet = useSheet(onClose)
   const [title, setTitle] = useState(task.title)
   const [details, setDetails] = useState(task.details)
   const [areaID, setAreaID] = useState(task.areaID)
@@ -70,11 +79,11 @@ export function TaskEditor({ task, onClose }: { task: TaskItem; onClose: () => v
   const save = () => {
     if (!title.trim()) return
     store.saveTask({ ...task, title: title.trim(), details, areaID, dueDate: toSec(due), priority })
-    onClose()
+    sheet.close()
   }
 
   return (
-    <Sheet title="Задача" onClose={onClose} action={<button class="btn primary" disabled={!title.trim()} onClick={save}>Готово</button>}>
+    <Sheet closing={sheet.closing} title="Задача" onClose={sheet.close} action={<button class="btn primary" disabled={!title.trim()} onClick={save}>Готово</button>}>
       <div class="field"><textarea rows={2} value={title} onInput={(e) => setTitle(e.currentTarget.value)} /></div>
       <div class="field"><textarea rows={3} placeholder="Подробности" value={details} onInput={(e) => setDetails(e.currentTarget.value)} /></div>
       <div>
@@ -108,7 +117,7 @@ export function TaskEditor({ task, onClose }: { task: TaskItem; onClose: () => v
         <Segments value={priority} onChange={setPriority} options={[Priority.Normal, Priority.Important, Priority.Urgent].map((p) => ({ value: p, title: priorityTitle[p] }))} />
       </div>
       <div class="row">
-        <button class="btn danger" onClick={() => { store.deleteTask(task); onClose() }}>Удалить</button>
+        <button class="btn danger" onClick={() => { store.deleteTask(task); sheet.close() }}>Удалить</button>
       </div>
     </Sheet>
   )
@@ -129,9 +138,11 @@ export function AddTaskBar({ areaID }: { areaID: string }) {
   return (
     <div class="field">
       <input placeholder="Новая задача…" value={text} onInput={(e) => setText(e.currentTarget.value)} onKeyDown={(e) => e.key === 'Enter' && add()} enterkeyhint="done" />
-      <select class="chip" style={{ background: 'var(--raised)', border: 0, color: 'var(--secondary)' }} value={preset} onChange={(e) => setPreset(e.currentTarget.value)}>
-        {duePresets.map((p) => <option key={p.id} value={p.id}>{p.title}</option>)}
-      </select>
+      {/* Нажатие перебирает сроки: без даты → сегодня → завтра → на неделе */}
+      <button class="chip" style={{ flex: 'none', background: preset === 'none' ? 'var(--raised)' : 'rgba(255,90,60,0.16)', color: preset === 'none' ? 'var(--secondary)' : 'var(--accent)' }}
+        onClick={() => setPreset(duePresets[(duePresets.findIndex((p) => p.id === preset) + 1) % duePresets.length].id)}>
+        {duePresets.find((p) => p.id === preset)!.title}
+      </button>
       <button class="circle-btn" onClick={add} aria-label="Добавить"><ArrowUp size={18} /></button>
     </div>
   )

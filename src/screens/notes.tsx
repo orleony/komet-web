@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'preact/hooks'
+import { createPortal } from 'preact/compat'
 import { Bold, ChevronLeft, Italic, List, ListOrdered, ListTodo, Pin, Search, SquarePen, Strikethrough, Trash2, Underline } from 'lucide-preact'
 import type { Note } from '../model'
 import { plural, relativeDay, toDate } from '../lib/dates'
@@ -223,7 +224,7 @@ function NoteEditor({ id, onClose }: { id: string; onClose: () => void }) {
   if (!note) return null
   const keep = (e: Event) => e.preventDefault() // кнопки панели не забирают фокус у текста
 
-  return (
+  return createPortal(
     <div class="editor-page">
       <div class="editor-top">
         <button class="back" onClick={onClose}><ChevronLeft size={18} /> Заметки</button>
@@ -256,6 +257,7 @@ function NoteEditor({ id, onClose }: { id: string; onClose: () => void }) {
           </>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }

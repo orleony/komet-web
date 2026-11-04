@@ -30,11 +30,13 @@ body {
 input, textarea, [contenteditable] { -webkit-user-select: text; user-select: text; }
 button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
 input, textarea, select { font: inherit; color: inherit; }
+/* iPhone увеличивает страницу при нажатии на поле со шрифтом меньше 16px — отсюда «всё съезжает» */
+input, textarea, select { font-size: 16px; }
 #app { height: 100%; }
 
 /* Каркас: экран + нижние вкладки */
-.shell { display: flex; flex-direction: column; height: 100%; }
-.content { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.shell { display: flex; flex-direction: column; height: 100%; height: 100dvh; overflow: hidden; }
+.content { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; overscroll-behavior-y: contain; }
 .screen { padding: calc(var(--safe-top) + 14px) 18px 32px; max-width: 720px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
 .screen-head { display: flex; align-items: flex-end; gap: 14px; }
 .screen-head h1 { margin: 0; font-size: 32px; font-weight: 700; letter-spacing: -0.6px; line-height: 1.1; }
@@ -42,10 +44,14 @@ input, textarea, select { font: inherit; color: inherit; }
 .grow { flex: 1; min-width: 0; }
 
 .tabbar {
-  display: flex; padding: 4px 6px calc(var(--safe-bottom) + 4px); background: var(--panel);
-  border-top: 1px solid var(--stroke);
+  /* Ближе к полоске «Домой», как системные вкладки */
+  display: flex; padding: 2px 6px max(4px, calc(var(--safe-bottom) - 14px)); background: rgba(18, 18, 19, 0.92);
+  -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px);
+  border-top: 1px solid var(--stroke); position: relative; z-index: 10;
 }
-.tab { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 7px 0; color: var(--secondary); font-size: 10.5px; font-weight: 600; position: relative; }
+.tab { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 0 4px; color: var(--secondary); font-size: 10.5px; font-weight: 600; position: relative; transition: color 0.2s; }
+.tab svg { transition: transform 0.25s cubic-bezier(0.3, 1.6, 0.5, 1); }
+.tab.on svg { transform: scale(1.12); }
 .tab.on { color: var(--accent); }
 .badge { position: absolute; top: 2px; left: calc(50% + 6px); min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px; background: var(--accent); color: #fff; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
 
@@ -104,13 +110,22 @@ input, textarea, select { font: inherit; color: inherit; }
 .prio { font-weight: 800; font-size: 13px; flex: none; }
 
 /* Шторка снизу */
-.sheet-backdrop { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.55); z-index: 50; display: flex; align-items: flex-end; animation: fade 0.15s; }
-.sheet { width: 100%; max-height: 92%; overflow-y: auto; background: var(--panel); border-radius: 22px 22px 0 0; padding: 10px 18px calc(var(--safe-bottom) + 18px); display: flex; flex-direction: column; gap: 14px; animation: rise 0.22s ease-out; }
+.sheet-backdrop { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.55); z-index: 100; display: flex; align-items: flex-end; animation: fade 0.22s ease-out; }
+.sheet { width: 100%; max-height: 92%; max-height: 92dvh; overflow-y: auto; overscroll-behavior: contain; background: var(--panel); border-radius: 22px 22px 0 0; padding: 0 18px calc(var(--safe-bottom) + 18px); display: flex; flex-direction: column; gap: 14px; animation: rise 0.34s cubic-bezier(0.2, 0.9, 0.25, 1); transition: transform 0.25s cubic-bezier(0.2, 0.9, 0.25, 1); }
+.sheet-backdrop.closing { animation: fade-out 0.22s ease-in forwards; }
+.sheet-backdrop.closing .sheet { animation: sink 0.22s ease-in forwards; }
+.sheet-drag { position: sticky; top: 0; z-index: 2; background: var(--panel); padding-top: 10px; padding-bottom: 4px; display: flex; flex-direction: column; gap: 12px; touch-action: none; }
 .sheet-grip { width: 38px; height: 5px; border-radius: 3px; background: var(--line); margin: 0 auto 2px; }
 .sheet-head { display: flex; align-items: center; gap: 10px; }
 .sheet-head h2 { margin: 0; font-size: 20px; flex: 1; }
-@keyframes rise { from { transform: translateY(40px); opacity: 0.4; } }
+@keyframes rise { from { transform: translateY(100%); } }
+@keyframes sink { to { transform: translateY(100%); } }
 @keyframes fade { from { opacity: 0; } }
+@keyframes fade-out { to { background: rgba(0, 0, 0, 0); } }
+@keyframes screen-in { from { opacity: 0; transform: translateY(8px); } }
+@keyframes slide-in { from { transform: translateX(100%); } }
+@keyframes pop { 0% { transform: scale(1); } 40% { transform: scale(1.3); } 100% { transform: scale(1); } }
+@keyframes row-in { from { opacity: 0; transform: translateY(-4px); } }
 
 /* Пары */
 .class-row { display: flex; gap: 12px; align-items: flex-start; }
@@ -124,7 +139,7 @@ input, textarea, select { font: inherit; color: inherit; }
 .note-row { display: block; width: 100%; text-align: left; background: var(--card); border-radius: 14px; padding: 11px 14px; }
 .note-row b { display: block; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .note-row span { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; color: var(--secondary); font-size: 12.5px; margin-top: 3px; }
-.editor-page { position: fixed; inset: 0; z-index: 40; background: var(--bg); display: flex; flex-direction: column; }
+.editor-page { position: fixed; inset: 0; z-index: 90; background: var(--bg); display: flex; flex-direction: column; animation: slide-in 0.32s cubic-bezier(0.2, 0.9, 0.25, 1); }
 .editor-top { display: flex; align-items: center; gap: 14px; padding: calc(var(--safe-top) + 8px) 16px 8px; }
 .editor { flex: 1; overflow-y: auto; padding: 6px 18px 120px; outline: none; font-size: 16px; line-height: 1.45; -webkit-user-select: text; user-select: text; }
 .editor h1 { font-size: 26px; margin: 0.3em 0; }
@@ -150,3 +165,25 @@ input, textarea, select { font: inherit; color: inherit; }
 .link-row .ic { width: 32px; height: 32px; border-radius: 9px; background: var(--raised); color: var(--accent); display: flex; align-items: center; justify-content: center; }
 .back { display: inline-flex; align-items: center; gap: 4px; color: var(--accent); font-weight: 600; padding: 4px 0; }
 .toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(var(--safe-bottom) + 76px); background: var(--raised); padding: 10px 16px; border-radius: 14px; font-size: 13px; font-weight: 600; z-index: 60; animation: fade 0.2s; }
+
+/* Плавность. Кто выключил анимации в настройках iPhone — тому без них. */
+@media (prefers-reduced-motion: no-preference) {
+  .content { animation: screen-in 0.28s cubic-bezier(0.2, 0.8, 0.2, 1); }
+  .btn, .chip, .circle-btn, .icon-btn, .link-row, .note-row, .task .body, .class-row, .segments button, .format-bar button, .back {
+    transition: transform 0.15s ease, background-color 0.2s ease, color 0.2s ease, opacity 0.2s ease;
+  }
+  .btn:active, .chip:active, .circle-btn:active, .icon-btn:active, .link-row:active, .note-row:active, .task .body:active, .class-row:active, .back:active {
+    transform: scale(0.96);
+  }
+  .tab:active svg { transform: scale(0.88); }
+  .task, .note-row, .class-row, .link-row { animation: row-in 0.25s ease-out both; }
+  .task .check.on svg { animation: pop 0.35s cubic-bezier(0.3, 1.6, 0.5, 1); }
+  .task.checking { transition: opacity 0.3s ease 0.15s; opacity: 0.45; }
+  .pill { transition: background-color 0.25s ease, color 0.25s ease; }
+  .toggle .knob::after { transition: transform 0.25s cubic-bezier(0.3, 1.4, 0.5, 1); }
+  .toast { animation: toast-in 0.3s cubic-bezier(0.2, 0.9, 0.25, 1); }
+  @keyframes toast-in { from { opacity: 0; transform: translate(-50%, 12px); } }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sheet, .sheet-backdrop, .editor-page { animation: none !important; }
+}

@@ -38,7 +38,7 @@ export function App() {
   if (!store.loaded.value) return null
   return (
     <div class="shell">
-      <div class="content">
+      <div class="content" key={tab}>
         {tab === 'today' && <Today />}
         {tab === 'tasks' && <Tasks />}
         {tab === 'schedule' && <Schedule />}

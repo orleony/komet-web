@@ -6,7 +6,7 @@ import { parse } from '../lib/keywords'
 import { router, templateOf } from '../lib/router'
 import * as store from '../store'
 import { AreaIcon, areaIcons } from '../ui/icons'
-import { Screen, Segments, Sheet, Toggle, areaColor, palette, showToast, tint } from '../ui/controls'
+import { Screen, Segments, Sheet, useSheet, Toggle, areaColor, palette, showToast, tint } from '../ui/controls'
 import { TaskRow } from '../ui/tasks'
 import { ClassRow } from './schedule'
 import { NotificationsCard } from '../push'
@@ -217,6 +217,7 @@ function SettingsPage() {
 // MARK: - Редактор раздела
 
 function AreaEditor({ area, onClose }: { area: Area | null; onClose: () => void }) {
+  const sheet = useSheet(onClose)
   const [title, setTitle] = useState(area?.title ?? '')
   const [icon, setIcon] = useState(area?.icon ?? 'star.fill')
   const [colorIndex, setColorIndex] = useState(area?.colorIndex ?? 3)
@@ -231,11 +232,11 @@ function AreaEditor({ area, onClose }: { area: Area | null; onClose: () => void 
       ? (store.saveArea({ ...area, title: title.trim(), icon, colorIndex, keywords, template }), area)
       : store.addArea({ title: title.trim(), icon, colorIndex, keywords, template })
     if (makeFallback) store.setFallback(saved)
-    onClose()
+    sheet.close()
   }
 
   return (
-    <Sheet title={area ? 'Раздел' : 'Новый раздел'} onClose={onClose} action={<button class="btn primary" disabled={!title.trim()} onClick={save}>Готово</button>}>
+    <Sheet closing={sheet.closing} title={area ? 'Раздел' : 'Новый раздел'} onClose={sheet.close} action={<button class="btn primary" disabled={!title.trim()} onClick={save}>Готово</button>}>
       {!area && (
         <div>
           <div class="label">Готовые разделы</div>
@@ -273,10 +274,10 @@ function AreaEditor({ area, onClose }: { area: Area | null; onClose: () => void 
         <div class="field"><textarea rows={4} value={keywords} placeholder="тренировка, зал, пробежка" onInput={(e) => setKeywords(e.currentTarget.value)} /></div>
       </div>
       {!isFallback && <Toggle on={makeFallback} onChange={setMakeFallback} title="Всё неузнанное — сюда" subtitle="Вместо «Входящих»" />}
-      {isFallback && <button class="btn-text" style={{ alignSelf: 'flex-start' }} onClick={() => { store.setFallback(null); onClose() }}>Неузнанное — снова во «Входящие»</button>}
+      {isFallback && <button class="btn-text" style={{ alignSelf: 'flex-start' }} onClick={() => { store.setFallback(null); sheet.close() }}>Неузнанное — снова во «Входящие»</button>}
       {area && (
         <div class="row">
-          <button class="btn danger" onClick={() => { if (confirm(`Удалить раздел «${area.title}»? Его задачи переедут во «Входящие».`)) { store.deleteArea(area); onClose() } }}>Удалить раздел</button>
+          <button class="btn danger" onClick={() => { if (confirm(`Удалить раздел «${area.title}»? Его задачи переедут во «Входящие».`)) { store.deleteArea(area); sheet.close() } }}>Удалить раздел</button>
         </div>
       )}
     </Sheet>

@@ -1,5 +1,6 @@
 import type { ComponentChildren } from 'preact'
-import { useEffect } from 'preact/hooks'
+import { useEffect, useRef, useState } from 'preact/hooks'
+import { createPortal } from 'preact/compat'
 import { signal } from '@preact/signals'
 import { Priority } from '../model'
 import type { Area } from '../model'
@@ -38,24 +39,70 @@ export function Segments<T extends string | number>(props: { value: T; options: 
   )
 }
 
-/** Шторка снизу — вместо системных окон. */
-export function Sheet(props: { title: string; onClose: () => void; children: ComponentChildren; action?: ComponentChildren }) {
+/** Закрытие шторки с анимацией: редактор вызывает sheet.close() вместо onClose(). */
+export function useSheet(onClose: () => void) {
+  const [closing, setClosing] = useState(false)
+  const close = () => {
+    if (closing) return
+    setClosing(true)
+    window.setTimeout(onClose, 220)
+  }
+  return { closing, close }
+}
+
+/** Шторка снизу — вместо системных окон. Рисуется поверх всего приложения; смахивается вниз. */
+export function Sheet(props: { title: string; onClose: () => void; closing?: boolean; children: ComponentChildren; action?: ComponentChildren }) {
+  const own = useSheet(props.onClose)
+  const controlled = props.closing !== undefined
+  const closing = controlled ? props.closing! : own.closing
+  const close = controlled ? props.onClose : own.close
+  const sheetRef = useRef<HTMLDivElement>(null)
+  const drag = useRef<{ y: number; dy: number } | null>(null)
+
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && props.onClose()
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && close()
     window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
+    document.body.classList.add('sheet-open')
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      document.body.classList.remove('sheet-open')
+    }
   }, [])
-  return (
-    <div class="sheet-backdrop" onClick={(e) => e.target === e.currentTarget && props.onClose()}>
-      <div class="sheet">
-        <div class="sheet-grip" />
-        <div class="sheet-head">
-          <h2>{props.title}</h2>
-          {props.action}
+
+  // Смахивание вниз за верх шторки
+  const onTouchStart = (e: TouchEvent) => { drag.current = { y: e.touches[0].clientY, dy: 0 } }
+  const onTouchMove = (e: TouchEvent) => {
+    if (!drag.current || !sheetRef.current) return
+    drag.current.dy = Math.max(0, e.touches[0].clientY - drag.current.y)
+    sheetRef.current.style.transition = 'none'
+    sheetRef.current.style.transform = `translateY(${drag.current.dy}px)`
+  }
+  const onTouchEnd = () => {
+    const el = sheetRef.current
+    const dy = drag.current?.dy ?? 0
+    drag.current = null
+    if (!el) return
+    el.style.transition = ''
+    if (dy > 90) {
+      el.style.transform = 'translateY(100%)'
+      close()
+    } else el.style.transform = ''
+  }
+
+  return createPortal(
+    <div class={'sheet-backdrop' + (closing ? ' closing' : '')} onClick={(e) => e.target === e.currentTarget && close()}>
+      <div class="sheet" ref={sheetRef}>
+        <div class="sheet-drag" onTouchStart={onTouchStart as any} onTouchMove={onTouchMove as any} onTouchEnd={onTouchEnd}>
+          <div class="sheet-grip" />
+          <div class="sheet-head">
+            <h2>{props.title}</h2>
+            {props.action}
+          </div>
         </div>
         {props.children}
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
 
