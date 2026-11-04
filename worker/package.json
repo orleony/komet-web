@@ -1,0 +1,11 @@
+{
+  "name": "komet-push",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "3.84.1"
+  }
+}

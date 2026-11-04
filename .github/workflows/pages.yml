@@ -26,10 +26,8 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm test
+      # Адрес сервера напоминаний — в .env.production
       - run: npm run build
-        env:
-          # Адрес сервера напоминаний: Settings → Secrets and variables → Actions → Variables → PUSH_URL
-          VITE_PUSH_URL: ${{ vars.PUSH_URL }}
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist

@@ -4,3 +4,4 @@ dist/
 .wrangler/
 .dev.vars
 public/dev-import.json
+worker/node_modules/

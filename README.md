@@ -47,7 +47,7 @@ npx wrangler secret put VAPID_PRIVATE                 # VAPID_PRIVATE из то�
 npx wrangler deploy                                   # адрес вида https://komet-push.<имя>.workers.dev
 ```
 
-Адрес сервера укажи в репозитории: Settings → Secrets and variables → Actions → Variables → `PUSH_URL`.
+Адрес сервера — в файле `.env.production` (`VITE_PUSH_URL`).
 
 ## Публикация
 

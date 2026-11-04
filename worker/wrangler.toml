@@ -9,9 +9,9 @@ crons = ["* * * * *"]
 [[d1_databases]]
 binding = "DB"
 database_name = "komet-push"
-database_id = "REPLACE_WITH_D1_ID"
+database_id = "9d44361a-d97c-449e-ae07-30d210804207"
 
 [vars]
-VAPID_PUBLIC = "REPLACE_WITH_VAPID_PUBLIC"
-VAPID_SUBJECT = "https://github.com/"
+VAPID_PUBLIC = "BKrjMrMcGNAvFtJxjIdHeRbNUe1qTqJx8O2TnSfNYT-QRRQZI3gQGFih6owbxzLLo2MFCg6_zs5c4hdBFSxWibM"
+VAPID_SUBJECT = "https://orleony.github.io/komet-web/"
 # VAPID_PRIVATE — секрет: npx wrangler secret put VAPID_PRIVATE
