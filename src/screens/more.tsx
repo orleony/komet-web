@@ -209,6 +209,7 @@ function SettingsPage() {
         </div>
       </div>
 
+      <Diagnostics />
       {editing && <AreaEditor area={editing === 'new' ? null : editing} onClose={() => setEditing(null)} />}
     </Screen>
   )
@@ -284,3 +285,40 @@ function AreaEditor({ area, onClose }: { area: Area | null; onClose: () => void 
   )
 }
 
+
+/** Версия; тройное нажатие — размеры экрана для поиска багов вёрстки на iPhone. */
+function Diagnostics() {
+  const [taps, setTaps] = useState(0)
+  const [info, setInfo] = useState<string>('')
+  const collect = () => {
+    const probe = document.createElement('div')
+    probe.style.cssText = 'position:fixed;top:0;left:0;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);visibility:hidden'
+    document.body.appendChild(probe)
+    const cs = getComputedStyle(probe)
+    const safe = [cs.paddingTop, cs.paddingRight, cs.paddingBottom, cs.paddingLeft].map((v) => parseFloat(v)).join(' / ')
+    probe.remove()
+    const r = (sel: string) => {
+      const b = document.querySelector(sel)?.getBoundingClientRect()
+      return b ? `${Math.round(b.top)}–${Math.round(b.bottom)}` : '—'
+    }
+    const vv = window.visualViewport
+    setInfo([
+      `версия ${__BUILD__}`,
+      `standalone ${(navigator as any).standalone === true} · display ${window.matchMedia('(display-mode: standalone)').matches ? 'standalone' : 'browser'}`,
+      `screen ${screen.width}×${screen.height}`,
+      `inner ${window.innerWidth}×${window.innerHeight} · outer ${window.outerHeight}`,
+      `client ${document.documentElement.clientHeight} · vv ${vv ? `${Math.round(vv.height)} (top ${Math.round(vv.offsetTop)})` : '—'}`,
+      `safe area (верх/право/низ/лево) ${safe}`,
+      `--app-h ${getComputedStyle(document.documentElement).getPropertyValue('--app-h') || '—'}`,
+      `shell ${r('.shell')} · tabbar ${r('.tabbar')}`,
+      `status bar ${document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]')?.getAttribute('content')}`,
+      navigator.userAgent.replace(/^Mozilla\/5\.0 /, ''),
+    ].join('\n'))
+  }
+  return (
+    <div style={{ textAlign: 'center' }}>
+      <button class="hint" onClick={() => { const n = taps + 1; setTaps(n); if (n >= 3) collect() }}>Komet · версия {__BUILD__}</button>
+      {info && <pre class="card" style={{ textAlign: 'left', whiteSpace: 'pre-wrap', fontSize: 11.5, marginTop: 8, userSelect: 'text', WebkitUserSelect: 'text' }}>{info}</pre>}
+    </div>
+  )
+}
