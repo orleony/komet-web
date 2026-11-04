@@ -1,650 +1,654 @@
-[
-  {
-    "clean" : "Сдать лабу по матанализу до пятницы.",
-    "kind" : "task",
-    "phrase" : "сдать лабу по матанализу до пятницы",
-    "tasks" : [
-      {
-        "area" : "study",
-        "due" : 0,
-        "priority" : 0,
-        "title" : "Сдать лабу по матанализу",
-        "weak" : false,
-        "weekday" : 4
-      }
-    ]
-  },
-  {
-    "clean" : "Свести бит завтра!!",
-    "kind" : "task",
-    "phrase" : "свести бит завтра !!",
-    "tasks" : [
-      {
-        "area" : "music",
-        "due" : 1,
-        "priority" : 1,
-        "title" : "Свести бит",
-        "weak" : false,
-        "weekday" : 5
-      }
-    ]
-  },
-  {
-    "clean" : "Купить хлеб.",
-    "kind" : "task",
-    "phrase" : "купить хлеб",
-    "tasks" : [
-      {
-        "area" : "personal",
-        "due" : -999,
-        "priority" : 0,
-        "title" : "Купить хлеб",
-        "weak" : false,
-        "weekday" : 0
-      }
-    ]
-  },
-  {
-    "clean" : "Сегодня был отличный день.",
-    "kind" : "note",
-    "phrase" : "Сегодня был отличный день",
-    "tasks" : [
-      {
-        "area" : "personal",
-        "due" : 0,
-        "priority" : 0,
-        "title" : "Был отличный день",
-        "weak" : true,
-        "weekday" : 4
-      }
-    ]
-  },
-  {
-    "clean" : "Купи молоко, а еще позвони маме.",
-    "kind" : "task",
-    "phrase" : "купи молоко, а еще позвони маме",
-    "tasks" : [
-      {
-        "area" : "personal",
-        "due" : -999,
-        "priority" : 0,
-        "title" : "Купи молоко",
-        "weak" : false,
-        "weekday" : 0
-      },
-      {
-        "area" : "personal",
-        "due" : -999,
-        "priority" : 0,
-        "title" : "Позвони маме",
-        "weak" : false,
-        "weekday" : 0
-      }
-    ]
-  },
-  {
-    "clean" : "В 15.30 созвон с Димой.",
-    "kind" : "note",
-    "phrase" : "в 15.30 созвон с Димой",
-    "tasks" : [
-      {
-        "area" : "personal",
-        "due" : -999,
-        "priority" : 0,
-        "title" : "В 15.30 созвон с Димой",
-        "weak" : false,
-        "weekday" : 0
-      }
-    ]
-  },
-  {
-    "clean" : "Купить 1.5 литра молока.",
-    "kind" : "task",
-    "phrase" : "купить 1.5 литра молока",
-    "tasks" : [
-      {
-        "area" : "personal",
-        "due" : -999,
-        "priority" : 0,
-        "title" : "Купить 1.5 литра молока",
-        "weak" : false,
-        "weekday" : 0
-      }
-    ]
-  },
-  {
-    "clean" : "Сдать реферат к 12.11.",
-    "kind" : "task",
-    "phrase" : "сдать реферат к 12.11",
-    "tasks" : [
-      {
-        "area" : "study",
-        "due" : 7,
-        "priority" : 0,
-        "title" : "Сдать реферат",
-        "weak" : false,
-        "weekday" : 4
-      }
-    ]
-  },
-  {
-    "clean" : "Срочно сдать доклад.",
-    "kind" : "task",
-    "phrase" : "срочно сдать доклад",
-    "tasks" : [
-      {
-        "area" : "study",
-        "due" : 0,
-        "priority" : 2,
-        "title" : "Сдать доклад",
-        "weak" : false,
-        "weekday" : 4
-      }
-    ]
-  },
-  {
-    "clean" : "Это не срочно, просто подумать.",
-    "kind" : "task",
-    "phrase" : "это не срочно, просто подумать",
-    "tasks" : [
-      {
-        "area" : "personal",
-        "due" : -999,
-        "priority" : 0,
-        "title" : "Это не, просто подумать",
-        "weak" : false,
-        "weekday" : 0
-      }
-    ]
-  },
-  {
-    "clean" : "Написать текст для припева.",
-    "kind" : "task",
-    "phrase" : "написать текст для припева",
-    "tasks" : [
-      {
-        "area" : "music",
-        "due" : -999,
-        "priority" : 0,
-        "title" : "Написать текст для припева",
-        "weak" : false,
-        "weekday" : 0
-      }
-    ]
-  },
-  {
-    "clean" : "Лаба Вилисова.",
-    "kind" : "task",
-    "phrase" : "лаба Вилисова",
-    "tasks" : [
-      {
-        "area" : "study",
-        "due" : -999,
-        "priority" : 0,
-        "title" : "Лаба Вилисова",
-        "weak" : false,
-        "weekday" : 0
-      }
-    ]
-  },
-  {
-    "clean" : "Надо сделать домашку на послезавтра.",
-    "kind" : "task",
-    "phrase" : "ну короче надо надо сделать домашку на послезавтра",
-    "tasks" : [
-      {
-        "area" : "study",
-        "due" : 2,
-        "priority" : 0,
-        "title" : "Сделать домашку",
-        "weak" : false,
-        "weekday" : 6
-      }
-    ]
-  },
-  {
-    "clean" : "Через 3 дня экзамен по философии.",
-    "kind" : "task",
-    "phrase" : "через 3 дня экзамен по философии",
-    "tasks" : [
-      {
-        "area" : "study",
-        "due" : 3,
-        "priority" : 0,
-        "title" : "Экзамен по философии",
-        "weak" : false,
-        "weekday" : 7
-      }
-    ]
-  },
-  {
-    "clean" : "К 5 декабря подготовить курсовую.",
-    "kind" : "task",
-    "phrase" : "к 5 декабря подготовить курсовую",
-    "tasks" : [
-      {
-        "area" : "study",
-        "due" : 30,
-        "priority" : 0,
-        "title" : "Подготовить курсовую",
-        "weak" : false,
-        "weekday" : 6
-      }
-    ]
-  },
-  {
-    "clean" : "До субботы включительно записать вокал.",
-    "kind" : "task",
-    "phrase" : "до субботы включительно записать вокал",
-    "tasks" : [
-      {
-        "area" : "music",
-        "due" : 2,
-        "priority" : 0,
-        "title" : "Записать вокал",
-        "weak" : false,
-        "weekday" : 6
-      }
-    ]
-  },
-  {
-    "clean" : "На следующей неделе сходить к стоматологу.",
-    "kind" : "task",
-    "phrase" : "на следующей неделе сходить к стоматологу",
-    "tasks" : [
-      {
-        "area" : "personal",
-        "due" : 10,
-        "priority" : 0,
-        "title" : "Сходить к стоматологу",
-        "weak" : false,
-        "weekday" : 7
-      }
-    ]
-  },
-  {
-    "clean" : "Идея: трек про осень.",
-    "kind" : "note",
-    "phrase" : "идея: трек про осень",
-    "tasks" : [
-      {
-        "area" : "music",
-        "due" : -999,
-        "priority" : 0,
-        "title" : "Трек про осень",
-        "weak" : false,
-        "weekday" : 0
-      }
-    ]
-  },
-  {
-    "clean" : "Задача: позвонить в деканат.",
-    "kind" : "task",
-    "phrase" : "задача: позвонить в деканат",
-    "tasks" : [
-      {
-        "area" : "personal",
-        "due" : -999,
-        "priority" : 0,
-        "title" : "Позвонить в деканат",
-        "weak" : false,
-        "weekday" : 0
-      }
-    ]
-  },
-  {
-    "clean" : "Пару дней отдохнуть.",
-    "kind" : "task",
-    "phrase" : "пару дней отдохнуть",
-    "tasks" : [
-      {
-        "area" : "personal",
-        "due" : -999,
-        "priority" : 0,
-        "title" : "Пару дней отдохнуть",
-        "weak" : false,
-        "weekday" : 0
-      }
-    ]
-  },
-  {
-    "clean" : "Завтра пара в 9:00.",
-    "kind" : "task",
-    "phrase" : "завтра пара в 9:00",
-    "tasks" : [
-      {
-        "area" : "study",
-        "due" : 1,
-        "priority" : 0,
-        "title" : "Пара в 9:00",
-        "weak" : false,
-        "weekday" : 5
-      }
-    ]
-  },
-  {
-    "clean" : "Оплатить интернет через неделю.",
-    "kind" : "task",
-    "phrase" : "оплатить интернет через неделю",
-    "tasks" : [
-      {
-        "area" : "personal",
-        "due" : 7,
-        "priority" : 0,
-        "title" : "Оплатить интернет",
-        "weak" : false,
-        "weekday" : 4
-      }
-    ]
-  },
-  {
-    "clean" : "Встреча с другом в среду.",
-    "kind" : "task",
-    "phrase" : "Встреча с другом в среду",
-    "tasks" : [
-      {
-        "area" : "personal",
-        "due" : 6,
-        "priority" : 0,
-        "title" : "Встреча с другом",
-        "weak" : false,
-        "weekday" : 3
-      }
-    ]
-  },
-  {
-    "clean" : "Мысли о жизни\nВсё хорошо\nВесна скоро.",
-    "kind" : "note",
-    "phrase" : "Мысли о жизни\nвсё хорошо\nвесна скоро",
-    "tasks" : [
-      {
-        "area" : "personal",
-        "due" : -999,
-        "priority" : 0,
-        "title" : "Мысли о жизни",
-        "weak" : false,
-        "weekday" : 0
-      },
-      {
-        "area" : "personal",
-        "due" : -999,
-        "priority" : 0,
-        "title" : "Всё хорошо",
-        "weak" : false,
-        "weekday" : 0
-      },
-      {
-        "area" : "personal",
-        "due" : -999,
-        "priority" : 0,
-        "title" : "Весна скоро",
-        "weak" : false,
-        "weekday" : 0
-      }
-    ]
-  },
-  {
-    "clean" : "Купить струны\nСвести демку\nСдать зачёт.",
-    "kind" : "task",
-    "phrase" : "купить струны\nсвести демку\nсдать зачёт",
-    "tasks" : [
-      {
-        "area" : "personal",
-        "due" : -999,
-        "priority" : 0,
-        "title" : "Купить струны",
-        "weak" : false,
-        "weekday" : 0
-      },
-      {
-        "area" : "music",
-        "due" : -999,
-        "priority" : 0,
-        "title" : "Свести демку",
-        "weak" : false,
-        "weekday" : 0
-      },
-      {
-        "area" : "study",
-        "due" : -999,
-        "priority" : 0,
-        "title" : "Сдать зачёт",
-        "weak" : false,
-        "weekday" : 0
-      }
-    ]
-  },
-  {
-    "clean" : "До понедельника прочитать главу.",
-    "kind" : "task",
-    "phrase" : "до понедельника прочитать главу",
-    "tasks" : [
-      {
-        "area" : "study",
-        "due" : 3,
-        "priority" : 0,
-        "title" : "Прочитать главу",
-        "weak" : false,
-        "weekday" : 7
-      }
-    ]
-  },
-  {
-    "clean" : "Сыграйте на гитаре вечером.",
-    "kind" : "task",
-    "phrase" : "сыграйте на гитаре вечером",
-    "tasks" : [
-      {
-        "area" : "music",
-        "due" : -999,
-        "priority" : 0,
-        "title" : "Сыграйте на гитаре вечером",
-        "weak" : false,
-        "weekday" : 0
-      }
-    ]
-  },
-  {
-    "clean" : "Важно позвонить маме.",
-    "kind" : "task",
-    "phrase" : "важно позвонить маме",
-    "tasks" : [
-      {
-        "area" : "personal",
-        "due" : -999,
-        "priority" : 1,
-        "title" : "Позвонить маме",
-        "weak" : false,
-        "weekday" : 0
-      }
-    ]
-  },
-  {
-    "clean" : "Критично доделать сайт к четвергу.",
-    "kind" : "task",
-    "phrase" : "критично доделать сайт к четвергу",
-    "tasks" : [
-      {
-        "area" : "study",
-        "due" : 7,
-        "priority" : 2,
-        "title" : "Доделать сайт",
-        "weak" : false,
-        "weekday" : 4
-      }
-    ]
-  },
-  {
-    "clean" : "10 Ноября сессия.",
-    "kind" : "task",
-    "phrase" : "10 ноября сессия",
-    "tasks" : [
-      {
-        "area" : "study",
-        "due" : 5,
-        "priority" : 0,
-        "title" : "Сессия",
-        "weak" : false,
-        "weekday" : 2
-      }
-    ]
-  },
-  {
-    "clean" : "Сдать долг 05.12.2026.",
-    "kind" : "task",
-    "phrase" : "сдать долг 05.12.2026",
-    "tasks" : [
-      {
-        "area" : "study",
-        "due" : 30,
-        "priority" : 0,
-        "title" : "Сдать долг",
-        "weak" : false,
-        "weekday" : 6
-      }
-    ]
-  },
-  {
-    "clean" : "Через 100500 дней.",
-    "kind" : "note",
-    "phrase" : "через 100500 дней",
-    "tasks" : [
-      {
-        "area" : "personal",
-        "due" : -999,
-        "priority" : 0,
-        "title" : "Через 100500 дней",
-        "weak" : false,
-        "weekday" : 0
-      }
-    ]
-  },
-  {
-    "clean" : "Версия 2.5 вышла.",
-    "kind" : "note",
-    "phrase" : "версия 2.5 вышла",
-    "tasks" : [
-      {
-        "area" : "personal",
-        "due" : -999,
-        "priority" : 0,
-        "title" : "Версия 2.5 вышла",
-        "weak" : false,
-        "weekday" : 0
-      }
-    ]
-  },
-  {
-    "clean" : "Я хочу спать.",
-    "kind" : "task",
-    "phrase" : "я я хочу хочу спать",
-    "tasks" : [
-      {
-        "area" : "personal",
-        "due" : -999,
-        "priority" : 0,
-        "title" : "Спать",
-        "weak" : false,
-        "weekday" : 0
-      }
-    ]
-  },
-  {
-    "clean" : "Э-э купить носки.",
-    "kind" : "note",
-    "phrase" : "в общем-то типа э-э купить носки",
-    "tasks" : [
-      {
-        "area" : "personal",
-        "due" : -999,
-        "priority" : 0,
-        "title" : "Э-э купить носки",
-        "weak" : false,
-        "weekday" : 0
-      }
-    ]
-  },
-  {
-    "clean" : "Проверить почту, потом сходить в зал.",
-    "kind" : "task",
-    "phrase" : "проверить почту, потом сходить в зал",
-    "tasks" : [
-      {
-        "area" : "personal",
-        "due" : -999,
-        "priority" : 0,
-        "title" : "Проверить почту",
-        "weak" : false,
-        "weekday" : 0
-      },
-      {
-        "area" : "personal",
-        "due" : -999,
-        "priority" : 0,
-        "title" : "Сходить в зал",
-        "weak" : false,
-        "weekday" : 0
-      }
-    ]
-  },
-  {
-    "clean" : "Не забыть выключить утюг.",
-    "kind" : "task",
-    "phrase" : "не забыть выключить утюг",
-    "tasks" : [
-      {
-        "area" : "personal",
-        "due" : -999,
-        "priority" : 0,
-        "title" : "Выключить утюг",
-        "weak" : false,
-        "weekday" : 0
-      }
-    ]
-  },
-  {
-    "clean" : "Треки свести и отмастерить до конца недели.",
-    "kind" : "task",
-    "phrase" : "треки свести и отмастерить до конца недели",
-    "tasks" : [
-      {
-        "area" : "music",
-        "due" : 3,
-        "priority" : 0,
-        "title" : "Треки свести и отмастерить",
-        "weak" : false,
-        "weekday" : 7
-      }
-    ]
-  },
-  {
-    "clean" : "Посмотреть фильм сегодня.",
-    "kind" : "task",
-    "phrase" : "посмотреть фильм сегодня",
-    "tasks" : [
-      {
-        "area" : "personal",
-        "due" : 0,
-        "priority" : 0,
-        "title" : "Посмотреть фильм",
-        "weak" : true,
-        "weekday" : 4
-      }
-    ]
-  },
-  {
-    "clean" : "Записаться в спортзал.",
-    "kind" : "task",
-    "phrase" : "записаться в спортзал",
-    "tasks" : [
-      {
-        "area" : "personal",
-        "due" : -999,
-        "priority" : 0,
-        "title" : "Записаться в спортзал",
-        "weak" : false,
-        "weekday" : 0
-      }
-    ]
-  }
-]
+{
+  "generated" : 1793829494.4077811,
+  "results" : [
+    {
+      "clean" : "Сдать лабу по матанализу до пятницы.",
+      "kind" : "task",
+      "phrase" : "сдать лабу по матанализу до пятницы",
+      "tasks" : [
+        {
+          "area" : "study",
+          "due" : 0,
+          "priority" : 0,
+          "title" : "Сдать лабу по матанализу",
+          "weak" : false,
+          "weekday" : 4
+        }
+      ]
+    },
+    {
+      "clean" : "Свести бит завтра!!",
+      "kind" : "task",
+      "phrase" : "свести бит завтра !!",
+      "tasks" : [
+        {
+          "area" : "music",
+          "due" : 1,
+          "priority" : 1,
+          "title" : "Свести бит",
+          "weak" : false,
+          "weekday" : 5
+        }
+      ]
+    },
+    {
+      "clean" : "Купить хлеб.",
+      "kind" : "task",
+      "phrase" : "купить хлеб",
+      "tasks" : [
+        {
+          "area" : "personal",
+          "due" : -999,
+          "priority" : 0,
+          "title" : "Купить хлеб",
+          "weak" : false,
+          "weekday" : 0
+        }
+      ]
+    },
+    {
+      "clean" : "Сегодня был отличный день.",
+      "kind" : "note",
+      "phrase" : "Сегодня был отличный день",
+      "tasks" : [
+        {
+          "area" : "personal",
+          "due" : 0,
+          "priority" : 0,
+          "title" : "Был отличный день",
+          "weak" : true,
+          "weekday" : 4
+        }
+      ]
+    },
+    {
+      "clean" : "Купи молоко, а еще позвони маме.",
+      "kind" : "task",
+      "phrase" : "купи молоко, а еще позвони маме",
+      "tasks" : [
+        {
+          "area" : "personal",
+          "due" : -999,
+          "priority" : 0,
+          "title" : "Купи молоко",
+          "weak" : false,
+          "weekday" : 0
+        },
+        {
+          "area" : "personal",
+          "due" : -999,
+          "priority" : 0,
+          "title" : "Позвони маме",
+          "weak" : false,
+          "weekday" : 0
+        }
+      ]
+    },
+    {
+      "clean" : "В 15.30 созвон с Димой.",
+      "kind" : "note",
+      "phrase" : "в 15.30 созвон с Димой",
+      "tasks" : [
+        {
+          "area" : "personal",
+          "due" : -999,
+          "priority" : 0,
+          "title" : "В 15.30 созвон с Димой",
+          "weak" : false,
+          "weekday" : 0
+        }
+      ]
+    },
+    {
+      "clean" : "Купить 1.5 литра молока.",
+      "kind" : "task",
+      "phrase" : "купить 1.5 литра молока",
+      "tasks" : [
+        {
+          "area" : "personal",
+          "due" : -999,
+          "priority" : 0,
+          "title" : "Купить 1.5 литра молока",
+          "weak" : false,
+          "weekday" : 0
+        }
+      ]
+    },
+    {
+      "clean" : "Сдать реферат к 12.11.",
+      "kind" : "task",
+      "phrase" : "сдать реферат к 12.11",
+      "tasks" : [
+        {
+          "area" : "study",
+          "due" : 7,
+          "priority" : 0,
+          "title" : "Сдать реферат",
+          "weak" : false,
+          "weekday" : 4
+        }
+      ]
+    },
+    {
+      "clean" : "Срочно сдать доклад.",
+      "kind" : "task",
+      "phrase" : "срочно сдать доклад",
+      "tasks" : [
+        {
+          "area" : "study",
+          "due" : 0,
+          "priority" : 2,
+          "title" : "Сдать доклад",
+          "weak" : false,
+          "weekday" : 4
+        }
+      ]
+    },
+    {
+      "clean" : "Это не срочно, просто подумать.",
+      "kind" : "task",
+      "phrase" : "это не срочно, просто подумать",
+      "tasks" : [
+        {
+          "area" : "personal",
+          "due" : -999,
+          "priority" : 0,
+          "title" : "Это не, просто подумать",
+          "weak" : false,
+          "weekday" : 0
+        }
+      ]
+    },
+    {
+      "clean" : "Написать текст для припева.",
+      "kind" : "task",
+      "phrase" : "написать текст для припева",
+      "tasks" : [
+        {
+          "area" : "music",
+          "due" : -999,
+          "priority" : 0,
+          "title" : "Написать текст для припева",
+          "weak" : false,
+          "weekday" : 0
+        }
+      ]
+    },
+    {
+      "clean" : "Лаба Вилисова.",
+      "kind" : "task",
+      "phrase" : "лаба Вилисова",
+      "tasks" : [
+        {
+          "area" : "study",
+          "due" : -999,
+          "priority" : 0,
+          "title" : "Лаба Вилисова",
+          "weak" : false,
+          "weekday" : 0
+        }
+      ]
+    },
+    {
+      "clean" : "Надо сделать домашку на послезавтра.",
+      "kind" : "task",
+      "phrase" : "ну короче надо надо сделать домашку на послезавтра",
+      "tasks" : [
+        {
+          "area" : "study",
+          "due" : 2,
+          "priority" : 0,
+          "title" : "Сделать домашку",
+          "weak" : false,
+          "weekday" : 6
+        }
+      ]
+    },
+    {
+      "clean" : "Через 3 дня экзамен по философии.",
+      "kind" : "task",
+      "phrase" : "через 3 дня экзамен по философии",
+      "tasks" : [
+        {
+          "area" : "study",
+          "due" : 3,
+          "priority" : 0,
+          "title" : "Экзамен по философии",
+          "weak" : false,
+          "weekday" : 7
+        }
+      ]
+    },
+    {
+      "clean" : "К 5 декабря подготовить курсовую.",
+      "kind" : "task",
+      "phrase" : "к 5 декабря подготовить курсовую",
+      "tasks" : [
+        {
+          "area" : "study",
+          "due" : 30,
+          "priority" : 0,
+          "title" : "Подготовить курсовую",
+          "weak" : false,
+          "weekday" : 6
+        }
+      ]
+    },
+    {
+      "clean" : "До субботы включительно записать вокал.",
+      "kind" : "task",
+      "phrase" : "до субботы включительно записать вокал",
+      "tasks" : [
+        {
+          "area" : "music",
+          "due" : 2,
+          "priority" : 0,
+          "title" : "Записать вокал",
+          "weak" : false,
+          "weekday" : 6
+        }
+      ]
+    },
+    {
+      "clean" : "На следующей неделе сходить к стоматологу.",
+      "kind" : "task",
+      "phrase" : "на следующей неделе сходить к стоматологу",
+      "tasks" : [
+        {
+          "area" : "personal",
+          "due" : 10,
+          "priority" : 0,
+          "title" : "Сходить к стоматологу",
+          "weak" : false,
+          "weekday" : 7
+        }
+      ]
+    },
+    {
+      "clean" : "Идея: трек про осень.",
+      "kind" : "note",
+      "phrase" : "идея: трек про осень",
+      "tasks" : [
+        {
+          "area" : "music",
+          "due" : -999,
+          "priority" : 0,
+          "title" : "Трек про осень",
+          "weak" : false,
+          "weekday" : 0
+        }
+      ]
+    },
+    {
+      "clean" : "Задача: позвонить в деканат.",
+      "kind" : "task",
+      "phrase" : "задача: позвонить в деканат",
+      "tasks" : [
+        {
+          "area" : "personal",
+          "due" : -999,
+          "priority" : 0,
+          "title" : "Позвонить в деканат",
+          "weak" : false,
+          "weekday" : 0
+        }
+      ]
+    },
+    {
+      "clean" : "Пару дней отдохнуть.",
+      "kind" : "task",
+      "phrase" : "пару дней отдохнуть",
+      "tasks" : [
+        {
+          "area" : "personal",
+          "due" : -999,
+          "priority" : 0,
+          "title" : "Пару дней отдохнуть",
+          "weak" : false,
+          "weekday" : 0
+        }
+      ]
+    },
+    {
+      "clean" : "Завтра пара в 9:00.",
+      "kind" : "task",
+      "phrase" : "завтра пара в 9:00",
+      "tasks" : [
+        {
+          "area" : "study",
+          "due" : 1,
+          "priority" : 0,
+          "title" : "Пара в 9:00",
+          "weak" : false,
+          "weekday" : 5
+        }
+      ]
+    },
+    {
+      "clean" : "Оплатить интернет через неделю.",
+      "kind" : "task",
+      "phrase" : "оплатить интернет через неделю",
+      "tasks" : [
+        {
+          "area" : "personal",
+          "due" : 7,
+          "priority" : 0,
+          "title" : "Оплатить интернет",
+          "weak" : false,
+          "weekday" : 4
+        }
+      ]
+    },
+    {
+      "clean" : "Встреча с другом в среду.",
+      "kind" : "task",
+      "phrase" : "Встреча с другом в среду",
+      "tasks" : [
+        {
+          "area" : "personal",
+          "due" : 6,
+          "priority" : 0,
+          "title" : "Встреча с другом",
+          "weak" : false,
+          "weekday" : 3
+        }
+      ]
+    },
+    {
+      "clean" : "Мысли о жизни\nВсё хорошо\nВесна скоро.",
+      "kind" : "note",
+      "phrase" : "Мысли о жизни\nвсё хорошо\nвесна скоро",
+      "tasks" : [
+        {
+          "area" : "personal",
+          "due" : -999,
+          "priority" : 0,
+          "title" : "Мысли о жизни",
+          "weak" : false,
+          "weekday" : 0
+        },
+        {
+          "area" : "personal",
+          "due" : -999,
+          "priority" : 0,
+          "title" : "Всё хорошо",
+          "weak" : false,
+          "weekday" : 0
+        },
+        {
+          "area" : "personal",
+          "due" : -999,
+          "priority" : 0,
+          "title" : "Весна скоро",
+          "weak" : false,
+          "weekday" : 0
+        }
+      ]
+    },
+    {
+      "clean" : "Купить струны\nСвести демку\nСдать зачёт.",
+      "kind" : "task",
+      "phrase" : "купить струны\nсвести демку\nсдать зачёт",
+      "tasks" : [
+        {
+          "area" : "personal",
+          "due" : -999,
+          "priority" : 0,
+          "title" : "Купить струны",
+          "weak" : false,
+          "weekday" : 0
+        },
+        {
+          "area" : "music",
+          "due" : -999,
+          "priority" : 0,
+          "title" : "Свести демку",
+          "weak" : false,
+          "weekday" : 0
+        },
+        {
+          "area" : "study",
+          "due" : -999,
+          "priority" : 0,
+          "title" : "Сдать зачёт",
+          "weak" : false,
+          "weekday" : 0
+        }
+      ]
+    },
+    {
+      "clean" : "До понедельника прочитать главу.",
+      "kind" : "task",
+      "phrase" : "до понедельника прочитать главу",
+      "tasks" : [
+        {
+          "area" : "study",
+          "due" : 3,
+          "priority" : 0,
+          "title" : "Прочитать главу",
+          "weak" : false,
+          "weekday" : 7
+        }
+      ]
+    },
+    {
+      "clean" : "Сыграйте на гитаре вечером.",
+      "kind" : "task",
+      "phrase" : "сыграйте на гитаре вечером",
+      "tasks" : [
+        {
+          "area" : "music",
+          "due" : -999,
+          "priority" : 0,
+          "title" : "Сыграйте на гитаре вечером",
+          "weak" : false,
+          "weekday" : 0
+        }
+      ]
+    },
+    {
+      "clean" : "Важно позвонить маме.",
+      "kind" : "task",
+      "phrase" : "важно позвонить маме",
+      "tasks" : [
+        {
+          "area" : "personal",
+          "due" : -999,
+          "priority" : 1,
+          "title" : "Позвонить маме",
+          "weak" : false,
+          "weekday" : 0
+        }
+      ]
+    },
+    {
+      "clean" : "Критично доделать сайт к четвергу.",
+      "kind" : "task",
+      "phrase" : "критично доделать сайт к четвергу",
+      "tasks" : [
+        {
+          "area" : "study",
+          "due" : 7,
+          "priority" : 2,
+          "title" : "Доделать сайт",
+          "weak" : false,
+          "weekday" : 4
+        }
+      ]
+    },
+    {
+      "clean" : "10 Ноября сессия.",
+      "kind" : "task",
+      "phrase" : "10 ноября сессия",
+      "tasks" : [
+        {
+          "area" : "study",
+          "due" : 5,
+          "priority" : 0,
+          "title" : "Сессия",
+          "weak" : false,
+          "weekday" : 2
+        }
+      ]
+    },
+    {
+      "clean" : "Сдать долг 05.12.2026.",
+      "kind" : "task",
+      "phrase" : "сдать долг 05.12.2026",
+      "tasks" : [
+        {
+          "area" : "study",
+          "due" : 30,
+          "priority" : 0,
+          "title" : "Сдать долг",
+          "weak" : false,
+          "weekday" : 6
+        }
+      ]
+    },
+    {
+      "clean" : "Через 100500 дней.",
+      "kind" : "note",
+      "phrase" : "через 100500 дней",
+      "tasks" : [
+        {
+          "area" : "personal",
+          "due" : -999,
+          "priority" : 0,
+          "title" : "Через 100500 дней",
+          "weak" : false,
+          "weekday" : 0
+        }
+      ]
+    },
+    {
+      "clean" : "Версия 2.5 вышла.",
+      "kind" : "note",
+      "phrase" : "версия 2.5 вышла",
+      "tasks" : [
+        {
+          "area" : "personal",
+          "due" : -999,
+          "priority" : 0,
+          "title" : "Версия 2.5 вышла",
+          "weak" : false,
+          "weekday" : 0
+        }
+      ]
+    },
+    {
+      "clean" : "Я хочу спать.",
+      "kind" : "task",
+      "phrase" : "я я хочу хочу спать",
+      "tasks" : [
+        {
+          "area" : "personal",
+          "due" : -999,
+          "priority" : 0,
+          "title" : "Спать",
+          "weak" : false,
+          "weekday" : 0
+        }
+      ]
+    },
+    {
+      "clean" : "Э-э купить носки.",
+      "kind" : "note",
+      "phrase" : "в общем-то типа э-э купить носки",
+      "tasks" : [
+        {
+          "area" : "personal",
+          "due" : -999,
+          "priority" : 0,
+          "title" : "Э-э купить носки",
+          "weak" : false,
+          "weekday" : 0
+        }
+      ]
+    },
+    {
+      "clean" : "Проверить почту, потом сходить в зал.",
+      "kind" : "task",
+      "phrase" : "проверить почту, потом сходить в зал",
+      "tasks" : [
+        {
+          "area" : "personal",
+          "due" : -999,
+          "priority" : 0,
+          "title" : "Проверить почту",
+          "weak" : false,
+          "weekday" : 0
+        },
+        {
+          "area" : "personal",
+          "due" : -999,
+          "priority" : 0,
+          "title" : "Сходить в зал",
+          "weak" : false,
+          "weekday" : 0
+        }
+      ]
+    },
+    {
+      "clean" : "Не забыть выключить утюг.",
+      "kind" : "task",
+      "phrase" : "не забыть выключить утюг",
+      "tasks" : [
+        {
+          "area" : "personal",
+          "due" : -999,
+          "priority" : 0,
+          "title" : "Выключить утюг",
+          "weak" : false,
+          "weekday" : 0
+        }
+      ]
+    },
+    {
+      "clean" : "Треки свести и отмастерить до конца недели.",
+      "kind" : "task",
+      "phrase" : "треки свести и отмастерить до конца недели",
+      "tasks" : [
+        {
+          "area" : "music",
+          "due" : 3,
+          "priority" : 0,
+          "title" : "Треки свести и отмастерить",
+          "weak" : false,
+          "weekday" : 7
+        }
+      ]
+    },
+    {
+      "clean" : "Посмотреть фильм сегодня.",
+      "kind" : "task",
+      "phrase" : "посмотреть фильм сегодня",
+      "tasks" : [
+        {
+          "area" : "personal",
+          "due" : 0,
+          "priority" : 0,
+          "title" : "Посмотреть фильм",
+          "weak" : true,
+          "weekday" : 4
+        }
+      ]
+    },
+    {
+      "clean" : "Записаться в спортзал.",
+      "kind" : "task",
+      "phrase" : "записаться в спортзал",
+      "tasks" : [
+        {
+          "area" : "personal",
+          "due" : -999,
+          "priority" : 0,
+          "title" : "Записаться в спортзал",
+          "weak" : false,
+          "weekday" : 0
+        }
+      ]
+    }
+  ],
+  "timeZone" : "Europe\/Moscow"
+}

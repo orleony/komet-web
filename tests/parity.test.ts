@@ -5,7 +5,10 @@ import { analyze, clean } from '../src/lib/text'
 import { router } from '../src/lib/router'
 import { defaultMusic, defaultStudy } from '../src/lib/keywords'
 
-const expected = JSON.parse(readFileSync(new URL('./swift-parity.json', import.meta.url), 'utf8'))
+const reference = JSON.parse(readFileSync(new URL('./swift-parity.json', import.meta.url), 'utf8'))
+const expected = reference.results
+// Тот же момент, что при снятии эталона на Mac: «завтра» и «до пятницы» считаются от того же дня
+const now = new Date(reference.generated * 1000)
 // Сроки — в днях от сегодня (и день недели): эталон не устаревает со сменой даты
 import { daysLeft, isoWeekday } from '../src/lib/dates'
 
@@ -19,10 +22,10 @@ router.mlEnabled = false
 describe('как на Mac', () => {
   for (const e of expected) {
     it(e.phrase.replace(/\n/g, ' / '), () => {
-      const a = analyze(e.phrase)
+      const a = analyze(e.phrase, [], now)
       expect(clean(e.phrase)).toBe(e.clean)
       expect(a.kind).toBe(e.kind)
-      expect(a.tasks.map((t) => ({ title: t.title, area: t.area.id, due: t.dueDate ? daysLeft(t.dueDate) : -999, weekday: t.dueDate ? isoWeekday(t.dueDate) : 0, priority: t.priority, weak: t.dueIsWeak })))
+      expect(a.tasks.map((t) => ({ title: t.title, area: t.area.id, due: t.dueDate ? daysLeft(t.dueDate, now) : -999, weekday: t.dueDate ? isoWeekday(t.dueDate) : 0, priority: t.priority, weak: t.dueIsWeak })))
         .toEqual(e.tasks)
     })
   }
