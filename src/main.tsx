@@ -5,14 +5,9 @@ import { load } from './store'
 import { startReminderSync } from './push'
 import './styles.css'
 
-/** Высота приложения. На iPhone с экрана «Домой» видимая область при запуске считается то меньше, то больше
- *  настоящей (нижняя панель прыгала и уезжала за край). Приложение там всегда во весь экран —
- *  поэтому берём размер самого экрана; в Safari — видимую высоту. */
+/** Высота приложения — ровно та область, где iOS его рисует; меняется — подстраиваемся. */
 function fitHeight() {
-  const standalone = (navigator as any).standalone === true || window.matchMedia('(display-mode: standalone)').matches
-  const portrait = window.innerHeight >= window.innerWidth
-  const h = standalone && portrait ? Math.max(screen.height, screen.width) : window.innerHeight
-  document.documentElement.style.setProperty('--app-h', `${h}px`)
+  document.documentElement.style.setProperty('--app-h', `${window.innerHeight}px`)
 }
 fitHeight()
 window.addEventListener('resize', fitHeight)
