@@ -1,0 +1,17 @@
+# Сервер напоминаний Komet. Развернуть: см. README в корне репозитория.
+name = "komet-push"
+main = "src/index.ts"
+compatibility_date = "2024-10-01"
+
+[triggers]
+crons = ["* * * * *"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "komet-push"
+database_id = "REPLACE_WITH_D1_ID"
+
+[vars]
+VAPID_PUBLIC = "REPLACE_WITH_VAPID_PUBLIC"
+VAPID_SUBJECT = "https://github.com/"
+# VAPID_PRIVATE — секрет: npx wrangler secret put VAPID_PRIVATE

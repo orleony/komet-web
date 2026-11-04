@@ -1,0 +1,227 @@
+import { useState } from 'preact/hooks'
+import { Check, Circle, CircleCheck, ArrowUp, Plus } from 'lucide-preact'
+import { Priority, priorityTitle } from '../model'
+import type { TaskItem } from '../model'
+import { addDays, endOfWeek, startOfToday, toDate, toSec } from '../lib/dates'
+import { analyze } from '../lib/text'
+import type { CaptureKind } from '../lib/text'
+import * as store from '../store'
+import { AreaIcon } from './icons'
+import { Segments, Sheet, areaColor, describeDue, palette, priorityColor, showToast, tint } from './controls'
+
+/** Задача — цветная пилюля раздела, справа срок. Нажатие на пилюлю — изменить. */
+export function TaskRow({ task }: { task: TaskItem }) {
+  const [editing, setEditing] = useState(false)
+  const area = store.areaOf(task)
+  const color = areaColor(area)
+  const due = toDate(task.dueDate)
+  const info = due ? describeDue(due, task.isDone) : null
+  return (
+    <div class="task">
+      <button class="check" onClick={() => store.toggleTask(task)} aria-label="Готово">
+        {task.isDone ? <CircleCheck size={22} color={color} /> : <Circle size={22} />}
+      </button>
+      <button class="body" onClick={() => setEditing(true)}>
+        {task.priority !== Priority.Normal && !task.isDone && (
+          <span class="prio" style={{ color: priorityColor[task.priority] }}>{task.priority === Priority.Urgent ? '!!!' : '!!'}</span>
+        )}
+        <span class={'pill' + (task.isDone ? ' done' : '')} style={{ color, background: tint(color, 0.16) }}>{task.title}</span>
+      </button>
+      {info && <span class="due" style={{ color: info.color }}>{info.text}</span>}
+      {editing && <TaskEditor task={task} onClose={() => setEditing(false)} />}
+    </div>
+  )
+}
+
+export function TaskList({ title, tasks, color }: { title: string; tasks: TaskItem[]; color?: string }) {
+  if (!tasks.length) return null
+  return (
+    <div class="section">
+      <div class="section-head" style={color ? { color } : undefined}>
+        {title} <span class="count">{tasks.length}</span>
+      </div>
+      {tasks.map((t) => <TaskRow key={t.id} task={t} />)}
+    </div>
+  )
+}
+
+const duePresets: { id: string; title: string; date: () => Date | null }[] = [
+  { id: 'none', title: 'Без даты', date: () => null },
+  { id: 'today', title: 'Сегодня', date: () => startOfToday() },
+  { id: 'tomorrow', title: 'Завтра', date: () => addDays(startOfToday(), 1) },
+  { id: 'week', title: 'На неделе', date: () => endOfWeek() },
+]
+
+const dateInput = (d: Date | null) =>
+  d ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` : ''
+const fromInput = (v: string) => {
+  if (!v) return null
+  const [y, m, d] = v.split('-').map(Number)
+  return new Date(y, m - 1, d)
+}
+
+export function TaskEditor({ task, onClose }: { task: TaskItem; onClose: () => void }) {
+  const [title, setTitle] = useState(task.title)
+  const [details, setDetails] = useState(task.details)
+  const [areaID, setAreaID] = useState(task.areaID)
+  const [due, setDue] = useState<Date | null>(toDate(task.dueDate))
+  const [priority, setPriority] = useState(task.priority)
+
+  const save = () => {
+    if (!title.trim()) return
+    store.saveTask({ ...task, title: title.trim(), details, areaID, dueDate: toSec(due), priority })
+    onClose()
+  }
+
+  return (
+    <Sheet title="Задача" onClose={onClose} action={<button class="btn primary" disabled={!title.trim()} onClick={save}>Готово</button>}>
+      <div class="field"><textarea rows={2} value={title} onInput={(e) => setTitle(e.currentTarget.value)} /></div>
+      <div class="field"><textarea rows={3} placeholder="Подробности" value={details} onInput={(e) => setDetails(e.currentTarget.value)} /></div>
+      <div>
+        <div class="label">Раздел</div>
+        <div class="row wrap">
+          {[store.inbox, ...store.areas()].map((a) => {
+            const c = areaColor(a)
+            const on = a.id === areaID || (a.id === store.inbox.id && !store.areas().some((x) => x.id === areaID))
+            return (
+              <button key={a.id} class="chip" style={{ color: on ? '#fff' : c, background: on ? c : tint(c, 0.16) }} onClick={() => setAreaID(a.id)}>
+                <AreaIcon name={a.icon} size={12} /> {a.title}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+      <div>
+        <div class="label">Срок</div>
+        <div class="row">
+          <div class="field grow"><input type="date" value={dateInput(due)} onInput={(e) => setDue(fromInput(e.currentTarget.value))} /></div>
+          {due && <button class="btn-text" onClick={() => setDue(null)}>Убрать</button>}
+        </div>
+        <div class="row wrap" style={{ marginTop: 8 }}>
+          {duePresets.slice(1).map((p) => (
+            <button key={p.id} class="chip" style={{ background: 'var(--raised)' }} onClick={() => setDue(p.date())}>{p.title}</button>
+          ))}
+        </div>
+      </div>
+      <div>
+        <div class="label">Важность</div>
+        <Segments value={priority} onChange={setPriority} options={[Priority.Normal, Priority.Important, Priority.Urgent].map((p) => ({ value: p, title: priorityTitle[p] }))} />
+      </div>
+      <div class="row">
+        <button class="btn danger" onClick={() => { store.deleteTask(task); onClose() }}>Удалить</button>
+      </div>
+    </Sheet>
+  )
+}
+
+/** Строка добавления задачи в раздел. */
+export function AddTaskBar({ areaID }: { areaID: string }) {
+  const [text, setText] = useState('')
+  const [preset, setPreset] = useState('none')
+  const add = () => {
+    if (!text.trim()) return
+    // Срок и важность из самого текста, если сказано («сдать лабу до пятницы !!»)
+    const parsed = analyze(text, store.studyHints()).tasks[0]
+    const due = duePresets.find((p) => p.id === preset)!.date() ?? parsed?.dueDate ?? null
+    store.addTask(parsed?.title ?? text, areaID, due, parsed?.priority ?? Priority.Normal)
+    setText('')
+  }
+  return (
+    <div class="field">
+      <input placeholder="Новая задача…" value={text} onInput={(e) => setText(e.currentTarget.value)} onKeyDown={(e) => e.key === 'Enter' && add()} enterkeyhint="done" />
+      <select class="chip" style={{ background: 'var(--raised)', border: 0, color: 'var(--secondary)' }} value={preset} onChange={(e) => setPreset(e.currentTarget.value)}>
+        {duePresets.map((p) => <option key={p.id} value={p.id}>{p.title}</option>)}
+      </select>
+      <button class="circle-btn" onClick={add} aria-label="Добавить"><ArrowUp size={18} /></button>
+    </div>
+  )
+}
+
+/** Одна строка на всё: пишешь что угодно, Komet сам решает — задача (с разделом и сроком) или заметка. */
+export function SmartCapture() {
+  const [text, setText] = useState('')
+  const [kindOverride, setKindOverride] = useState<CaptureKind | null>(null)
+  const [areaOverride, setAreaOverride] = useState<string | null>(null)
+  const trimmed = text.trim()
+  const analysis = trimmed ? analyze(text, store.studyHints()) : null
+  const kind = kindOverride ?? analysis?.kind ?? 'note'
+
+  const suggestion = analysis?.tasks.find((t) => t.suggest)?.suggest
+
+  const commit = () => {
+    if (!analysis) return
+    if (kind === 'note') {
+      store.addNote(text.trim())
+      showToast('Заметка сохранена')
+    } else {
+      for (const t of analysis.tasks) {
+        store.addTask(t.title, areaOverride ?? t.area.id, t.dueDate, t.priority)
+      }
+      showToast(analysis.tasks.length > 1 ? `Добавлено задач: ${analysis.tasks.length}` : 'Задача добавлена')
+    }
+    setText('')
+    setKindOverride(null)
+    setAreaOverride(null)
+  }
+
+  return (
+    <div class="section">
+      <div class="field" style={{ alignItems: 'flex-end', padding: '4px 6px 4px 14px' }}>
+        <textarea
+          rows={Math.min(8, Math.max(1, text.split('\n').length))}
+          placeholder="Запиши что угодно — сам разложу"
+          value={text}
+          onInput={(e) => setText(e.currentTarget.value)}
+          enterkeyhint="send"
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault()
+              commit()
+            }
+          }}
+        />
+        <button class="circle-btn" style={{ marginBottom: 3 }} onClick={commit} disabled={!trimmed} aria-label="Сохранить"><ArrowUp size={18} /></button>
+      </div>
+      {analysis && (
+        <div class="card" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <Segments value={kind} onChange={(k) => setKindOverride(k)} options={[{ value: 'task', title: 'Задача' }, { value: 'note', title: 'Заметка' }]} />
+          {kind === 'task' ? (
+            analysis.tasks.map((t, i) => {
+              const area = areaOverride ? store.areas().find((a) => a.id === areaOverride) ?? t.area : t.area
+              const c = areaColor(area)
+              return (
+                <div key={i} class="task">
+                  <Check size={16} color="var(--secondary)" />
+                  {t.priority !== Priority.Normal && <span class="prio" style={{ color: priorityColor[t.priority] }}>{t.priority === Priority.Urgent ? '!!!' : '!!'}</span>}
+                  <span class="pill" style={{ color: c, background: tint(c, 0.16) }}>{t.title}</span>
+                  {t.dueDate && <span class="due" style={{ color: describeDue(t.dueDate).color }}>{describeDue(t.dueDate).text}</span>}
+                </div>
+              )
+            })
+          ) : (
+            <div class="hint">Сохраню как заметку</div>
+          )}
+          {kind === 'task' && suggestion && !areaOverride && (
+            <button class="chip" style={{ alignSelf: 'flex-start', color: palette[suggestion.colorIndex], background: tint(palette[suggestion.colorIndex], 0.16) }}
+              onClick={() => setAreaOverride(store.addAreaFromTemplate(suggestion).id)}>
+              <Plus size={11} /> Похоже на «{suggestion.title}» — создать раздел
+            </button>
+          )}
+          {kind === 'task' && store.areas().length > 0 && (
+            <div class="row wrap">
+              {store.areas().map((a) => {
+                const c = areaColor(a)
+                const on = (areaOverride ?? analysis.tasks[0]?.area.id) === a.id
+                return (
+                  <button key={a.id} class="chip" style={{ color: on ? '#fff' : c, background: on ? c : tint(c, 0.14) }} onClick={() => setAreaOverride(a.id)}>
+                    <AreaIcon name={a.icon} size={11} /> {a.title}
+                  </button>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
