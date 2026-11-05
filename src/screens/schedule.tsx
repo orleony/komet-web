@@ -5,7 +5,7 @@ import type { ClassSlot, WeekParity } from '../model'
 import { addDays, dayMonth, duration, isoWeekday, minutesOfDay, nowSec, startOfWeek, time, weekdayNames } from '../lib/dates'
 import * as store from '../store'
 import { Screen, Segments, Sheet, useSheet, palette, tint } from '../ui/controls'
-import { BellsWizard, RoomField, ScheduleGrid, ScheduleImport, ScheduleSetup, SubjectSuggestions, TeacherField, fieldInvalid } from './schedule-tools'
+import { BellsWizard, KindSelect, RoomField, ScheduleGrid, ScheduleImport, ScheduleSetup, SubjectSuggestions, TeacherField, fieldInvalid } from './schedule-tools'
 import { roomProblem, teacherProblem } from '../lib/validate'
 
 const classColor = palette[0]
@@ -195,7 +195,7 @@ function ClassEditor({ slot, isNew, onClose }: { slot: ClassSlot; isNew: boolean
       </div>
       <TeacherField value={s.teacher} original={isNew ? '' : slot.teacher} subject={s.title} onChange={(v) => set('teacher', v)} />
       <RoomField value={s.room} original={isNew ? '' : slot.room} onChange={(v) => set('room', v)} />
-      <div class="field"><input placeholder="Лекция, семинар…" value={s.kind} onInput={(e) => set('kind', e.currentTarget.value)} /></div>
+      <KindSelect value={s.kind} onChange={(v) => set('kind', v)} />
       <div>
         <div class="label">Когда</div>
         <Segments value={s.parity} onChange={(p) => set('parity', p)} options={[{ value: 'every', title: 'Каждую' }, { value: 'numerator', title: 'Числитель' }, { value: 'denominator', title: 'Знаменатель' }]} />

@@ -251,7 +251,25 @@ export function ScheduleGrid({ shown, onDayBells }: { shown: WeekParity | null; 
   )
 }
 
-const kinds = ['Лекция', 'Практика', 'Лабораторная работа', 'Семинар']
+const kinds = ['Лекция', 'Практика', 'Семинар', 'Лабораторная работа', 'Консультация', 'Зачёт', 'Экзамен']
+
+/** Тип занятия — выпадающим списком. Подгруппа («Лекция · 1 подгр.») сохраняется; свой тип с Mac — тоже в списке. */
+export function KindSelect({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const parts = value.split(/\s*·\s*/).filter(Boolean)
+  const sub = parts.filter((x) => /подгр/.test(x))
+  const base = parts.filter((x) => !/подгр/.test(x)).join(' · ')
+  const options = base && !kinds.includes(base) ? [...kinds, base] : kinds
+  return (
+    <div class="field">
+      <select aria-label="Тип занятия" style={{ flex: 1, background: 'none', border: 0, padding: '10px 0', color: base ? undefined : 'var(--secondary)' }}
+        value={base} onChange={(e) => onChange([e.currentTarget.value, ...sub].filter(Boolean).join(' · '))}>
+        <option value="">Тип занятия — не указан</option>
+        {options.map((k) => <option key={k} value={k}>{k}</option>)}
+      </select>
+      {sub.length > 0 && <span class="hint" style={{ flex: 'none' }}>{sub.join(', ')}</span>}
+    </div>
+  )
+}
 
 /** Подсказки предметов в редакторе пары (вкладка «По дням») — как в сетке */
 export function SubjectSuggestions({ title, onPick }: { title: string; onPick: (c: ClassSlot) => void }) {
@@ -356,12 +374,7 @@ function EntryForm({ entry, original, update, suggestions }: { entry: CellEntry;
           ))}
         </div>
       )}
-      <div class="row wrap" style={{ gap: 6 }}>
-        {kinds.map((k) => (
-          <button key={k} class="chip" style={{ background: entry.kind === k ? tint(classColor, 0.3) : 'var(--raised)', color: entry.kind === k ? '#fff' : 'var(--secondary)' }}
-            onClick={() => update({ kind: entry.kind === k ? '' : k })}>{k === 'Лабораторная работа' ? 'Лаба' : k}</button>
-        ))}
-      </div>
+      <KindSelect value={entry.kind} onChange={(kind) => update({ kind })} />
       <RoomField value={entry.room} original={original?.room} onChange={(room) => update({ room })} />
       <TeacherField value={entry.teacher} original={original?.teacher} subject={entry.title} onChange={(teacher) => update({ teacher })} />
     </div>
