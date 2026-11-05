@@ -1,28 +1,129 @@
-import { Check } from 'lucide-preact'
+import { useState } from 'preact/hooks'
+import { Check, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-preact'
 import { parityTitle } from '../model'
 import type { ClassSlot, TaskItem } from '../model'
-import { duration, minutesOfDay, time, todayTitle, toDate } from '../lib/dates'
+import { addDays, dayHeader, daysLeft, duration, isoWeekday, minutesOfDay, startOfDay, startOfToday, time, toDate, todayTitle, weekdayShort } from '../lib/dates'
 import * as store from '../store'
-import { Screen, describeDue } from '../ui/controls'
-import { SmartCapture, TaskList } from '../ui/tasks'
-import { ClassRow } from './schedule'
+import { Screen, areaColor, describeDue } from '../ui/controls'
+import { SmartCapture, TaskList, TaskRow } from '../ui/tasks'
+import { ClassRow, WeekParityPrompt } from './schedule'
 
 export function Today() {
   const now = store.clock.value
   const parity = store.weekParity(now)
+  const [showAll, setShowAll] = useState(false)
+  const plan = store.plan()
   const undated = store.undated()
   const done = store.doneToday()
-  const groups = store.planByDay()
+
+  // На «Сегодня» — только то, что горит: просрочено, сегодня, завтра
+  const overdue = plan.filter((t) => daysLeft(toDate(t.dueDate)!) < 0)
+  const today = plan.filter((t) => daysLeft(toDate(t.dueDate)!) === 0)
+  const tomorrow = plan.filter((t) => daysLeft(toDate(t.dueDate)!) === 1)
+  const later = plan.filter((t) => daysLeft(toDate(t.dueDate)!) > 1)
+  const restCount = later.length + undated.length
+
   return (
     <Screen title="Сегодня" subtitle={todayTitle(now) + (parity ? ' · ' + parityTitle[parity].toLowerCase() : '')}>
       <NowCard />
       <SmartCapture />
+      <WeekParityPrompt />
       <TodayClasses />
-      {!groups.length && !undated.length && !done.length && <div class="empty">Планов нет — запиши что-нибудь в строку сверху</div>}
-      {groups.map((g) => <TaskList key={g.title} title={g.title} tasks={g.items} color={g.title === 'Просрочено' ? 'var(--danger)' : undefined} />)}
-      <TaskList title="Без срока" tasks={undated} />
+      {!overdue.length && !today.length && !tomorrow.length && (
+        <div class="empty">{restCount ? 'На сегодня и завтра ничего не горит' : 'Планов нет — запиши что-нибудь в строку сверху'}</div>
+      )}
+      <TaskList title="Просрочено" tasks={overdue} color="var(--danger)" />
+      <TaskList title="Сегодня" tasks={today} />
+      <TaskList title="Завтра" tasks={tomorrow} />
+
+      <MiniCalendar />
+
+      {restCount > 0 && (
+        <div class="section">
+          <button class="btn secondary" style={{ alignSelf: 'flex-start' }} onClick={() => setShowAll(!showAll)}>
+            Все задачи <span style={{ opacity: 0.6 }}>{restCount}</span>
+            <ChevronDown size={16} style={{ transform: showAll ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+          </button>
+          {showAll && (
+            <>
+              {groupByDay(later).map((g) => <TaskList key={g.title} title={g.title} tasks={g.items} />)}
+              <TaskList title="Без срока" tasks={undated} />
+            </>
+          )}
+        </div>
+      )}
       <TaskList title="Сделано сегодня" tasks={done} />
     </Screen>
+  )
+}
+
+function groupByDay(tasks: TaskItem[]): { title: string; items: TaskItem[] }[] {
+  const groups: { title: string; items: TaskItem[] }[] = []
+  for (const t of tasks) {
+    const title = dayHeader(toDate(t.dueDate)!)
+    if (groups.length && groups[groups.length - 1].title === title) groups[groups.length - 1].items.push(t)
+    else groups.push({ title, items: [t] })
+  }
+  return groups
+}
+
+// MARK: - Мини-календарь
+
+const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь']
+
+/** Месяц с точками цвета разделов: видно, на какие дни что приходится. Нажал на день — его задачи. */
+function MiniCalendar() {
+  const todayStart = startOfToday()
+  const [offset, setOffset] = useState(0)
+  const [selected, setSelected] = useState<number | null>(null)
+  const month = new Date(todayStart.getFullYear(), todayStart.getMonth() + offset, 1)
+  const first = addDays(month, -(isoWeekday(month) - 1))
+  const days = [...Array(42)].map((_, i) => addDays(first, i))
+  const visible = days[35].getMonth() === month.getMonth() ? days : days.slice(0, 35)
+
+  // Открытые задачи со сроком — по дням
+  const byDay = new Map<number, TaskItem[]>()
+  for (const t of store.plan()) {
+    const key = startOfDay(toDate(t.dueDate)!).getTime()
+    byDay.set(key, [...(byDay.get(key) ?? []), t])
+  }
+  const selectedTasks = selected != null ? byDay.get(selected) ?? [] : []
+
+  return (
+    <div class="card section" style={{ gap: 8 }}>
+      <div class="row">
+        <div class="toggle-title grow">{monthNames[month.getMonth()]} {month.getFullYear() !== todayStart.getFullYear() ? month.getFullYear() : ''}</div>
+        {offset !== 0 && <button class="btn-text" style={{ fontSize: 13 }} onClick={() => { setOffset(0); setSelected(null) }}>Сегодня</button>}
+        <button class="icon-btn" onClick={() => setOffset(offset - 1)} aria-label="Прошлый месяц"><ChevronLeft size={18} /></button>
+        <button class="icon-btn" onClick={() => setOffset(offset + 1)} aria-label="Следующий месяц"><ChevronRight size={18} /></button>
+      </div>
+      <div class="cal">
+        {weekdayShort.map((d) => <div key={d} class="cal-head">{d}</div>)}
+        {visible.map((d) => {
+          const key = d.getTime()
+          const tasks = byDay.get(key) ?? []
+          const colors = [...new Set(tasks.map((t) => areaColor(store.areaOf(t))))]
+          const isToday = key === todayStart.getTime()
+          const other = d.getMonth() !== month.getMonth()
+          return (
+            <button key={key} class={'cal-day' + (isToday ? ' today' : '') + (selected === key ? ' on' : '') + (other ? ' other' : '')}
+              onClick={() => setSelected(selected === key ? null : key)}>
+              <span>{d.getDate()}</span>
+              <span class="cal-dots">
+                {colors.slice(0, 3).map((c) => <i key={c} style={{ background: c }} />)}
+                {colors.length > 3 && <i style={{ background: 'var(--secondary)' }} />}
+              </span>
+            </button>
+          )
+        })}
+      </div>
+      {selected != null && (
+        <div class="section" style={{ marginTop: 4 }}>
+          <div class="section-head">{dayHeader(new Date(selected))}</div>
+          {selectedTasks.length ? selectedTasks.map((t) => <TaskRow key={t.id} task={t} />) : <div class="hint">Задач нет</div>}
+        </div>
+      )}
+    </div>
   )
 }
 

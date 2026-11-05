@@ -28,6 +28,26 @@ export function ClassRow({ slot, now, onEdit, showParity }: { slot: ClassSlot; n
   )
 }
 
+/** В расписании есть числитель и знаменатель, а какая сейчас неделя — не сказано: спрашиваем одной кнопкой.
+ *  Иначе Komet показывает пары обеих недель сразу. */
+export function WeekParityPrompt() {
+  const now = store.clock.value
+  const needs = store.weekParity(now) == null && store.classes().some((c) => c.parity !== 'every')
+  if (!needs) return null
+  return (
+    <div class="card section" style={{ border: '1.5px solid rgba(99,168,255,0.45)' }}>
+      <div>
+        <div class="toggle-title">Какая сейчас неделя?</div>
+        <div class="hint" style={{ fontSize: 12.5, marginTop: 2 }}>В расписании есть числитель и знаменатель — скажи один раз, дальше Komet посчитает сам</div>
+      </div>
+      <div class="row">
+        <button class="btn secondary grow" onClick={() => store.setCurrentWeek('numerator')}>Числитель</button>
+        <button class="btn secondary grow" onClick={() => store.setCurrentWeek('denominator')}>Знаменатель</button>
+      </div>
+    </div>
+  )
+}
+
 export function Schedule() {
   const [shownParity, setShownParity] = useState<WeekParity | null>(null)
   const [editing, setEditing] = useState<{ slot: ClassSlot; isNew: boolean } | null>(null)
@@ -54,6 +74,7 @@ export function Schedule() {
       subtitle={shown ? parityTitle[shown] + (isCurrent ? ' · эта неделя' : ' · следующая неделя') : 'Пары по дням недели'}
       right={<button class="icon-btn filled" onClick={() => setWeekMenu(true)} aria-label="Какая сейчас неделя"><Settings2 size={18} /></button>}
     >
+      <WeekParityPrompt />
       <div class="row">
         {current && (
           <div class="grow">

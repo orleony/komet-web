@@ -223,8 +223,11 @@ function findDue(box: { title: string }, inclusive: boolean, weak: { value: bool
 
   const relative: [string, () => Date][] = [
     [word('(?:(?:к|до|на)\\s+)?послезавтра'), () => dayOffset(2, now)],
-    [word('(?:(?:к|до|на)\\s+)?(?:завтра|завтрашн\\p{L}*)'), () => dayOffset(1, now)],
+    [word('(?:(?:к|до|на)\\s+)?завтра'), () => dayOffset(1, now)],
     [word('(?:на\\s+)?сегодня'), () => today],
+    // «Завтрашний» — срок, только если «сегодня»/«завтра» не сказано прямо:
+    // «сегодня посмотреть расписание на завтрашний день» — это на сегодня
+    [word('(?:(?:к|до|на)\\s+)?завтрашн\\p{L}*(?:\\s+день)?'), () => dayOffset(1, now)],
     [word('через неделю'), () => dayOffset(7, now)],
     [word('через две недели'), () => dayOffset(14, now)],
     [word('через месяц'), () => addMonths(today, 1)],
