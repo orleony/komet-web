@@ -127,20 +127,21 @@ export function ProgressRing({ done, total, color }: { done: number; total: numb
   return (
     <svg width="52" height="52" viewBox="0 0 52 52">
       <circle cx="26" cy="26" r={r} fill="none" stroke="var(--raised)" stroke-width="5" />
-      <circle cx="26" cy="26" r={r} fill="none" stroke={color} stroke-width="5" stroke-linecap="round"
-        stroke-dasharray={`${c * p} ${c}`} transform="rotate(-90 26 26)" />
+      {p > 0 && <circle cx="26" cy="26" r={r} fill="none" stroke={color} stroke-width="5" stroke-linecap="round"
+        stroke-dasharray={`${c * p} ${c}`} transform="rotate(-90 26 26)" />}
       <text x="26" y="30" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">{done}/{total}</text>
     </svg>
   )
 }
 
 /** Короткое всплывающее «Сохранено» */
-export const toast = signal<string | null>(null)
+export const toast = signal<{ text: string; action?: string; run?: () => void } | null>(null)
 let toastTimer: number | undefined
-export function showToast(text: string) {
-  toast.value = text
+/** Короткая подсказка; с action — кнопка «Вернуть» на пару секунд дольше */
+export function showToast(text: string, action?: string, run?: () => void) {
+  toast.value = { text, action, run }
   clearTimeout(toastTimer)
-  toastTimer = window.setTimeout(() => (toast.value = null), 2200)
+  toastTimer = window.setTimeout(() => (toast.value = null), action ? 4000 : 2200)
 }
 
 export function Screen(props: { title: string; subtitle?: string; right?: ComponentChildren; children: ComponentChildren }) {

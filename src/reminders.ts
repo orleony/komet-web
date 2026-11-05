@@ -18,15 +18,19 @@ export function buildReminders(now = new Date()): Reminder[] {
   const at = (day: Date, minutes: number) => startOfDay(day).getTime() / 1000 + minutes * 60
   const plan = store.plan()
 
+  // Неделя (числитель/знаменатель) не выбрана — напоминаем только о парах «каждую неделю», иначе придут обе сразу
+  const parityKnown = store.weekParity(now) != null
   for (let offset = 0; offset < 7; offset++) {
     const day = addDays(startOfToday(now), offset)
-    const classes = store.classesOn(day)
+    const classes = store.classesOn(day).filter((c) => parityKnown || c.parity === 'every')
 
     if (p.morning) {
       const dueToday = plan.filter((t) => daysLeft(toDate(t.dueDate)!, now) <= offset)
       const parts: string[] = []
-      if (classes.length) {
-        parts.push(`${classes.length} ${plural(classes.length, 'пара', 'пары', 'пар')}, первая в ${time(classes[0].startMin)} — ${classes[0].title}`)
+      // В сводке — пары, которые ещё впереди на момент сводки
+      const ahead = classes.filter((c) => c.startMin >= p.morningTime)
+      if (ahead.length) {
+        parts.push(`${ahead.length} ${plural(ahead.length, 'пара', 'пары', 'пар')}, первая в ${time(ahead[0].startMin)} — ${ahead[0].title}`)
       }
       if (dueToday.length) parts.push('Горит: ' + dueToday.slice(0, 2).map((t) => t.title).join(', '))
       if (parts.length) items.push({ at: at(day, p.morningTime), title: 'Доброе утро', body: parts.join(' · '), tag: `morning-${offset}` })

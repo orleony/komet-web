@@ -31,6 +31,8 @@ const timeUnits = new Set(['дней', 'дня', 'часов', 'часа', 'ми
 
 const nounEndings = new Set('аеиоуыэюяйьмхв')
 
+const shortEndings = new Set(['', 'а', 'я', 'у', 'ю', 'ы', 'и', 'е', 'о', 'ь', 'ой', 'ей', 'ою', 'ом', 'ем', 'ам', 'ям', 'ами', 'ями', 'ах', 'ях', 'ов', 'ев'])
+
 const isVerb = (w: string) => ['ть', 'ти', 'чь'].some((e) => w.endsWith(e))
 
 /** «лаба» ловит «лабу», «трек» — «треков», но «пара» не ловит «парк», а «записать» — «записаться». */
@@ -46,8 +48,10 @@ export function matches(word: string, keyword: string): boolean {
   while (stem.length > minStem && nounEndings.has(stem[stem.length - 1])) stem.pop()
   const s = stem.join('')
   if (!word.startsWith(s)) return false
-  const rest = [...word.slice(s.length)]
-  return rest.length <= 3 && rest.every((c) => nounEndings.has(c))
+  const rest = word.slice(s.length)
+  // У коротких основ — только настоящие окончания: «бит» ≠ «битва», «зал» ≠ «залив»
+  if (stem.length <= 3) return shortEndings.has(rest)
+  return [...rest].length <= 3 && [...rest].every((c) => nounEndings.has(c))
 }
 
 /** Сколько очков текст набирает для раздела. Существительные и фразы — 2, глаголы — 1. */

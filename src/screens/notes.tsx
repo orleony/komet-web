@@ -4,7 +4,7 @@ import { Bold, ChevronLeft, Italic, List, ListOrdered, ListTodo, Pin, Search, Sq
 import type { Note } from '../model'
 import { plural, relativeDay, toDate } from '../lib/dates'
 import * as store from '../store'
-import { Screen } from '../ui/controls'
+import { Screen, showToast } from '../ui/controls'
 
 export function Notes({ openID, setOpenID }: { openID: string | null; setOpenID: (id: string | null) => void }) {
   const [query, setQuery] = useState('')
@@ -149,12 +149,19 @@ function NoteEditor({ id, onClose }: { id: string; onClose: () => void }) {
     }
     vv?.addEventListener('resize', place)
     vv?.addEventListener('scroll', place)
-    const onSelection = () => setState({
-      bold: document.queryCommandState('bold'),
-      italic: document.queryCommandState('italic'),
-      underline: document.queryCommandState('underline'),
-      strikeThrough: document.queryCommandState('strikeThrough'),
-    })
+    const onSelection = () => {
+      // Жирность заголовка и зачёркивание отмеченного пункта — оформление, а не выбор пользователя
+      const node = window.getSelection()?.anchorNode
+      const el = node instanceof Element ? node : node?.parentElement
+      const inHeading = !!el?.closest('h1, h2')
+      const inDone = !!el?.closest('ul.checklist > li[data-done]')
+      setState({
+        bold: !inHeading && document.queryCommandState('bold'),
+        italic: document.queryCommandState('italic'),
+        underline: document.queryCommandState('underline'),
+        strikeThrough: !inDone && document.queryCommandState('strikeThrough'),
+      })
+    }
     document.addEventListener('selectionchange', onSelection)
     const flush = () => document.visibilityState === 'hidden' && save()
     document.addEventListener('visibilitychange', flush)
@@ -227,14 +234,24 @@ function NoteEditor({ id, onClose }: { id: string; onClose: () => void }) {
   return createPortal(
     <div class="editor-page">
       <div class="editor-top">
-        <button class="back" onClick={onClose}><ChevronLeft size={18} /> Заметки</button>
+        <button class="back" onClick={() => { save(); onClose() }}><ChevronLeft size={18} /> Заметки</button>
         <div class="grow" />
-        <button class="icon-btn" style={{ color: note.isPinned ? 'var(--accent)' : undefined }} onClick={() => store.setPinned(id, !note.isPinned)} aria-label="Закрепить"><Pin size={18} /></button>
-        <button class="icon-btn" onClick={() => { store.deleteNote(note as Note); onClose() }} aria-label="Удалить"><Trash2 size={18} /></button>
+        <button class="icon-btn" style={{ color: note.isPinned ? 'var(--accent)' : undefined }} onClick={() => store.setPinned(id, !note.isPinned)} aria-label="Закрепить" aria-pressed={note.isPinned}><Pin size={18} /></button>
+        <button class="icon-btn" aria-label="Удалить" onClick={() => {
+          // Только что созданную пустую — просто убираем, в корзину ей незачем
+          const empty = !htmlToText(ref.current!).trim()
+          if (empty) store.purgeNote(note as Note)
+          else {
+            save()
+            store.deleteNote(note as Note)
+            showToast('Заметка в корзине', 'Вернуть', () => store.restoreNote(store.noteAny(id)!))
+          }
+          onClose()
+        }}><Trash2 size={18} /></button>
       </div>
       <div ref={ref} class="editor" contentEditable data-placeholder="Начни писать…" onInput={onInput as any} onClick={onClick as any} onPaste={onPaste as any} onBlur={save} />
       <div ref={barRef} class="format-bar" onPointerDown={keep}>
-        <button onClick={() => setStyleMenu(!styleMenu)} style={{ fontSize: 15 }}>Aa</button>
+        <button onClick={() => setStyleMenu(!styleMenu)} style={{ fontSize: 15 }} aria-label="Стиль абзаца">Aa</button>
         {styleMenu && (
           <>
             <button onClick={() => { exec('formatBlock', 'h1'); setStyleMenu(false) }}>Заголовок</button>
@@ -246,14 +263,14 @@ function NoteEditor({ id, onClose }: { id: string; onClose: () => void }) {
         {!styleMenu && (
           <>
             <span class="sep" />
-            <button class={state.bold ? 'on' : ''} onClick={() => exec('bold')}><Bold size={17} /></button>
-            <button class={state.italic ? 'on' : ''} onClick={() => exec('italic')}><Italic size={17} /></button>
-            <button class={state.underline ? 'on' : ''} onClick={() => exec('underline')}><Underline size={17} /></button>
-            <button class={state.strikeThrough ? 'on' : ''} onClick={() => exec('strikeThrough')}><Strikethrough size={17} /></button>
+            <button class={state.bold ? 'on' : ''} aria-pressed={state.bold} aria-label="Жирный" onClick={() => exec('bold')}><Bold size={17} /></button>
+            <button class={state.italic ? 'on' : ''} aria-pressed={state.italic} aria-label="Курсив" onClick={() => exec('italic')}><Italic size={17} /></button>
+            <button class={state.underline ? 'on' : ''} aria-pressed={state.underline} aria-label="Подчёркнутый" onClick={() => exec('underline')}><Underline size={17} /></button>
+            <button class={state.strikeThrough ? 'on' : ''} aria-pressed={state.strikeThrough} aria-label="Зачёркнутый" onClick={() => exec('strikeThrough')}><Strikethrough size={17} /></button>
             <span class="sep" />
-            <button onClick={toggleChecklist}><ListTodo size={18} /></button>
-            <button onClick={() => exec('insertUnorderedList')}><List size={18} /></button>
-            <button onClick={() => exec('insertOrderedList')}><ListOrdered size={18} /></button>
+            <button aria-label="Чек-лист" onClick={toggleChecklist}><ListTodo size={18} /></button>
+            <button aria-label="Список" onClick={() => exec('insertUnorderedList')}><List size={18} /></button>
+            <button aria-label="Нумерованный список" onClick={() => exec('insertOrderedList')}><ListOrdered size={18} /></button>
           </>
         )}
       </div>

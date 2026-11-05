@@ -94,3 +94,47 @@ describe('календарь .ics', () => {
     expect(r[1].parity).not.toBe('every')
   })
 })
+
+describe('находки тестировщика: текст', () => {
+  const p = (s: string) => parseScheduleText(s, bells).map((c) => ({ day: c.weekday, n: c.number, title: c.title, kind: c.kind, room: c.room, teacher: c.teacher, parity: c.parity, start: c.startMin }))
+  it('римские номера', () => expect(p('Понедельник\nI пара Матан\nII пара Физика')).toMatchObject([{ n: 1, title: 'Матан' }, { n: 2, title: 'Физика' }]))
+  it('«(нечётная неделя)» и «чётная неделя»', () =>
+    expect(p('Вторник\nФизика (нечётная неделя) 214\nХимия чётная неделя 215')).toMatchObject([
+      { title: 'Физика', parity: 'numerator', room: '214' }, { title: 'Химия', parity: 'denominator', room: '215' }]))
+  it('подгруппа и аудитория через дробь', () =>
+    expect(p('Среда\nАнглийский язык (1 подгруппа) ауд. 301/2')).toMatchObject([{ title: 'Английский язык', kind: '1 подгр.', room: '301/2' }]))
+  it('два преподавателя', () =>
+    expect(p('Четверг\n2 пара Физика лекция Иванов И.И., Петров П.П.')).toMatchObject([{ title: 'Физика', teacher: 'Иванов И.И., Петров П.П.' }]))
+  it('«Практическая психология» — предмет, не вид', () =>
+    expect(p('Пятница\n3 Практическая психология')).toMatchObject([{ title: 'Практическая психология', kind: '' }]))
+  it('«Программирование лаба»', () => expect(p('Пт\n1 Программирование лаба')).toMatchObject([{ title: 'Программирование', kind: 'Лабораторная работа' }]))
+  it('дата перед днём недели', () => expect(p('09.11.2026 Понедельник\n1 пара Матан')).toMatchObject([{ day: 1, title: 'Матан' }]))
+  it('одно поле на строку', () =>
+    expect(p('Понедельник\n1 пара\n08:40-10:15\nМатематика\nлекция\nауд. 301\nИванов И.И.\n2 пара\nФизика')).toMatchObject([
+      { n: 1, start: t(8, 40), title: 'Математика', kind: 'Лекция', room: '301', teacher: 'Иванов И.И.' },
+      { n: 2, title: 'Физика' }]))
+  it('время с пробелами и эмодзи', () => expect(p('📚 Пн\n📚 1 пара Матан\n08 : 40 - 10 : 15 Физика')).toMatchObject([{ n: 1, title: 'Матан' }, { start: t(8, 40), title: 'Физика' }]))
+  it('год — не аудитория, корпус не в названии', () =>
+    expect(p('Сб\n1 Подготовка к ЕГЭ 2026\n2 Физика корп. 2 ауд. 301')).toMatchObject([{ title: 'Подготовка к ЕГЭ 2026', room: '' }, { title: 'Физика', room: '301' }]))
+})
+
+describe('находки тестировщика: .ics', () => {
+  const ev = (...lines: string[]) => ['BEGIN:VEVENT', ...lines, 'END:VEVENT']
+  const cal = (...events: string[][]) => ['BEGIN:VCALENDAR', ...events.flat(), 'END:VCALENDAR'].join('\r\n')
+  const every = (): WeekParity => 'numerator'
+  it('каникулы на весь день и отменённые — мимо', () => {
+    expect(parseICS(cal(ev('DTSTART;VALUE=DATE:20261109', 'DTEND;VALUE=DATE:20261116', 'SUMMARY:Каникулы', 'RRULE:FREQ=WEEKLY'),
+      ev('DTSTART:20261110T090000', 'DTEND:20261110T103000', 'SUMMARY:Отменено', 'STATUS:CANCELLED', 'RRULE:FREQ=WEEKLY')), every, bells)).toEqual([])
+  })
+  it('разовое событие — не пара', () => expect(parseICS(cal(ev('DTSTART:20261110T090000', 'DTEND:20261110T103000', 'SUMMARY:Собрание')), every, bells)).toEqual([]))
+  it('DURATION вместо DTEND, BYDAY на два дня, напоминание внутри', () => {
+    const r = parseICS(cal(ev('DTSTART:20261109T084000', 'DURATION:PT1H35M', 'SUMMARY:Матан', 'DESCRIPTION:Группа ИВТ-21\\, лекция\\, Иванов Иван Иванович',
+      'RRULE:FREQ=WEEKLY;BYDAY=MO,WE', 'BEGIN:VALARM', 'DESCRIPTION:Напоминание', 'END:VALARM')), every, bells)
+    expect(r.map((c) => [c.weekday, c.startMin, c.endMin, c.title, c.kind, c.teacher])).toEqual([
+      [1, t(8, 40), t(10, 15), 'Матан', 'Лекция', 'Иванов Иван Иванович'],
+      [3, t(8, 40), t(10, 15), 'Матан', 'Лекция', 'Иванов Иван Иванович']])
+  })
+  it('пробелы в конце строк', () => {
+    expect(parseICS(['BEGIN:VCALENDAR ', 'BEGIN:VEVENT ', 'DTSTART:20261109T084000 ', 'DTEND:20261109T101500 ', 'SUMMARY:Матан ', 'RRULE:FREQ=WEEKLY ', 'END:VEVENT ', 'END:VCALENDAR'].join('\r\n'), every, bells)).toHaveLength(1)
+  })
+})

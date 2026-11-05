@@ -1,7 +1,7 @@
 import { useRef, useState } from 'preact/hooks'
 import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Download, Pencil, Plus, Settings, Trash2, Upload } from 'lucide-preact'
 import type { Area } from '../model'
-import { addDays, dayHeader, relativeDay, startOfToday, toDate, startOfWeek } from '../lib/dates'
+import { addDays, dayHeader, plural, relativeDay, startOfToday, toDate, startOfWeek } from '../lib/dates'
 import { parse } from '../lib/keywords'
 import { router, templateOf } from '../lib/router'
 import * as store from '../store'
@@ -108,7 +108,7 @@ function TrashPage() {
             <div key={t.id} class="row">
               <span class="pill done grow" style={{ textDecoration: t.isDone ? 'line-through' : 'none' }}>{t.title}</span>
               <button class="btn-text" onClick={() => store.restoreTask(t)}>Вернуть</button>
-              <button class="icon-btn" onClick={() => store.purgeTask(t)} aria-label="Удалить насовсем"><Trash2 size={16} /></button>
+              <button class="icon-btn" onClick={() => confirm(`Удалить «${t.title}» насовсем?`) && store.purgeTask(t)} aria-label="Удалить насовсем"><Trash2 size={16} /></button>
             </div>
           ))}
         </div>
@@ -123,7 +123,7 @@ function TrashPage() {
                 <span class="hint">удалена {relativeDay(toDate(n.trashedAt)!).toLowerCase()}</span>
               </div>
               <button class="btn-text" onClick={() => store.restoreNote(n)}>Вернуть</button>
-              <button class="icon-btn" onClick={() => store.purgeNote(n)} aria-label="Удалить насовсем"><Trash2 size={16} /></button>
+              <button class="icon-btn" onClick={() => confirm(`Удалить «${store.noteTitle(n)}» насовсем?`) && store.purgeNote(n)} aria-label="Удалить насовсем"><Trash2 size={16} /></button>
             </div>
           ))}
         </div>
@@ -176,7 +176,7 @@ function SettingsPage() {
             </span>
             <div class="grow">
               <b style={{ fontSize: 14 }}>{a.title}</b>
-              <div class="hint">{store.fallbackArea().id === a.id ? 'сюда — всё неузнанное' : templateOf(a) ? 'знает, что сюда класть' : `${parse(a.keywords).length} слов`}</div>
+              <div class="hint">{store.fallbackArea().id === a.id ? 'сюда — всё неузнанное' : templateOf(a) ? 'знает, что сюда класть' : `${parse(a.keywords).length} ${plural(parse(a.keywords).length, 'слово', 'слова', 'слов')}`}</div>
             </div>
             <button class="icon-btn" onClick={() => store.moveArea(a, -1)} aria-label="Выше"><ChevronUp size={16} /></button>
             <button class="icon-btn" onClick={() => store.moveArea(a, 1)} aria-label="Ниже"><ChevronDown size={16} /></button>
@@ -268,7 +268,7 @@ function AreaEditor({ area, onClose }: { area: Area | null; onClose: () => void 
         <div class="label">Значок</div>
         <div class="row wrap" style={{ gap: 6 }}>
           {areaIcons.map((n) => (
-            <button key={n} onClick={() => setIcon(n)} style={{ width: 38, height: 38, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', background: n === icon ? palette[colorIndex] : 'var(--card)', color: n === icon ? '#fff' : 'var(--secondary)' }}>
+            <button key={n} onClick={() => setIcon(n)} aria-label={`Значок ${n}`} aria-pressed={n === icon} style={{ width: 38, height: 38, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', background: n === icon ? palette[colorIndex] : 'var(--card)', color: n === icon ? '#fff' : 'var(--secondary)' }}>
               <AreaIcon name={n} size={17} />
             </button>
           ))}
@@ -282,7 +282,7 @@ function AreaEditor({ area, onClose }: { area: Area | null; onClose: () => void 
       {isFallback && <button class="btn-text" style={{ alignSelf: 'flex-start' }} onClick={() => { store.setFallback(null); sheet.close() }}>Неузнанное — снова во «Входящие»</button>}
       {area && (
         <div class="row">
-          <button class="btn danger" onClick={() => { if (confirm(`Удалить раздел «${area.title}»? Его задачи переедут во «Входящие».`)) { store.deleteArea(area); sheet.close() } }}>Удалить раздел</button>
+          <button class="btn danger" onClick={() => { if (confirm(`Удалить раздел «${area.title}»? Его задачи переедут ${store.fallbackArea().id === area.id || store.fallbackArea().id === 'none' ? 'во «Входящие»' : `в «${store.fallbackArea().title}»`}.`)) { store.deleteArea(area); sheet.close() } }}>Удалить раздел</button>
         </div>
       )}
     </Sheet>

@@ -101,11 +101,24 @@ export class AreaRouter {
     const ws = normalize(text).split(/[^\p{L}]+/u).filter(Boolean)
     const hinted = ws.filter((w) => hints.some((h) => w.startsWith(h))).length
     let best: { area: Area; score: number } | null = null
+    const tied: Area[] = []
     for (const area of this.areas) {
       const s = score(text, parse(area.keywords)) + (area.id === 'study' ? hinted * 2 : 0)
-      if (s > (best?.score ?? 0)) best = { area, score: s }
+      if (s > (best?.score ?? 0)) {
+        best = { area, score: s }
+        tied.length = 0
+        tied.push(area)
+      } else if (best && s === best.score) tied.push(area)
     }
-    if (best) return { area: best.area, source: { kind: 'keyword' } }
+    if (best) {
+      // Ничья по словам («купить билеты» — и учёба, и путешествия) — решает модель
+      if (tied.length > 1 && this.mlEnabled && this.model) {
+        const p = this.model.probabilities(stem(text))
+        const winner = tied.reduce((a, b) => ((p.get(b.id) ?? 0) > (p.get(a.id) ?? 0) ? b : a))
+        return { area: winner, source: { kind: 'keyword' } }
+      }
+      return { area: best.area, source: { kind: 'keyword' } }
+    }
 
     // Слова популярного раздела, которого нет, — подскажем создать
     const missing = this.missingTemplates()

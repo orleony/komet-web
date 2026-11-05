@@ -59,12 +59,21 @@ export function ScheduleSetup({ onBells, onPaste, onCalendar }: { onBells: () =>
 
 // MARK: - Мастер звонков
 
+/** Параметры анкеты по уже заданным звонкам — чтобы мастер открывался с ними, а не с 9:00/90/10. */
+function paramsFrom(slots: BellSlot[]): BellParams {
+  const s = [...slots].sort((a, b) => a.start - b.start)
+  const gaps = s.slice(1).map((x, i) => x.start - s[i].end)
+  const pause = gaps.length ? [...gaps].sort((a, b) => a - b)[Math.floor(gaps.length / 2)] : defaultBellParams.pause
+  const big = gaps.reduce((best, g, i) => (g > pause + 5 && g > (gaps[best - 1] ?? 0) ? i + 1 : best), 0)
+  return { first: s[0].start, length: s[0].end - s[0].start, pause, bigAfter: big, bigPause: big ? gaps[big - 1] : defaultBellParams.bigPause, count: s.length }
+}
+
 /** Звонки одной анкетой: Komet сам строит сетку, любое время можно поправить. */
 export function BellsWizard({ onClose, onDone }: { onClose: () => void; onDone?: () => void }) {
   const sheet = useSheet(onClose)
   const existing = store.bells()
   const [step, setStep] = useState<'bells' | 'parity'>('bells')
-  const [p, setP] = useState<BellParams>(defaultBellParams)
+  const [p, setP] = useState<BellParams>(existing.length ? paramsFrom(existing) : defaultBellParams)
   const [slots, setSlots] = useState<BellSlot[]>(store.hasBells() || existing.length ? existing : computeBells(defaultBellParams))
   const update = (next: Partial<BellParams>) => {
     const params = { ...p, ...next }
@@ -86,7 +95,7 @@ export function BellsWizard({ onClose, onDone }: { onClose: () => void; onDone?:
 
   return (
     <Sheet closing={sheet.closing} title="Звонки" onClose={sheet.close}
-      action={<button class="btn primary" onClick={() => { store.setBells(slots.slice().sort((a, b) => a.start - b.start)); if (store.weekParity(new Date()) == null && !store.classes().length) setStep('parity'); else { onDone?.(); sheet.close() } }}>Готово</button>}>
+      action={<button class="btn primary" onClick={() => { store.setBells(slots); if (store.weekParity(new Date()) == null && !store.classes().length) setStep('parity'); else { onDone?.(); sheet.close() } }}>Готово</button>}>
       <div class="row"><span class="grow">Первая пара начинается в</span><TimeInput value={p.first} onChange={(m) => update({ first: m })} /></div>
       <div>
         <div class="label">Сколько идёт пара</div>
@@ -244,7 +253,16 @@ function CellEditor({ day, slot, index, onClose }: { day: number; slot: BellSlot
     <Sheet closing={sheet.closing} title={`${weekdayNames[day - 1]}, ${index + 1} пара`} onClose={sheet.close}
       action={<button class="btn primary" onClick={save}>Готово</button>}>
       <div class="hint" style={{ marginTop: -6 }}>{time(slot.start)} — {time(slot.end)}</div>
-      <Segments value={split ? 'split' : 'every'} onChange={(v) => setSplit(v === 'split')} options={[{ value: 'every', title: 'Каждую неделю' }, { value: 'split', title: 'Числитель / знаменатель' }]} />
+      <Segments value={split ? 'split' : 'every'} onChange={(v) => {
+        const toSplit = v === 'split'
+        // Переносим уже введённое, чтобы «Готово» без правок не стёрло пару
+        if (toSplit && every.title && !num.title && !den.title) {
+          setNum({ ...every, parity: 'numerator' })
+          setDen({ ...every, parity: 'denominator' })
+        }
+        if (!toSplit && !every.title && (num.title || den.title)) setEvery({ ...(num.title ? num : den), parity: 'every' })
+        setSplit(toSplit)
+      }} options={[{ value: 'every', title: 'Каждую неделю' }, { value: 'split', title: 'Числ. / знам.' }]} />
       {!split && <EntryForm entry={every} update={(x) => setEvery((prev) => ({ ...prev, ...x }))} suggestions={suggestions} />}
       {split && (
         <>
@@ -294,6 +312,9 @@ export function ScheduleImport({ mode, onClose }: { mode: 'text' | 'ics'; onClos
   const fileRef = useRef<HTMLInputElement>(null)
   const bells = store.bells()
 
+  // Добавятся только выбранные пары, у которых есть время (из строки или по звонкам)
+  const addable = (parsed ?? []).filter((c, i) => !skip.has(i) && c.startMin != null).length
+
   const parseText = () => {
     setParsed(parseScheduleText(text, bells))
     setSkip(new Set())
@@ -316,7 +337,7 @@ export function ScheduleImport({ mode, onClose }: { mode: 'text' | 'ics'; onClos
 
   return (
     <Sheet closing={sheet.closing} title={mode === 'text' ? 'Вставить расписание' : 'Календарь (.ics)'} onClose={sheet.close}
-      action={parsed?.length ? <button class="btn primary" onClick={add}>Добавить {parsed.length - skip.size}</button> : undefined}>
+      action={addable > 0 ? <button class="btn primary" onClick={add}>Добавить {addable}</button> : undefined}>
       {!parsed && mode === 'text' && (
         <>
           <div class="hint" style={{ fontSize: 13, lineHeight: 1.45 }}>
@@ -352,7 +373,11 @@ export function ScheduleImport({ mode, onClose }: { mode: 'text' | 'ics'; onClos
               </div>
             </button>
           ))}
-          {parsed.some((c) => c.startMin == null) && <div class="hint danger-text">Для пар без времени задай звонки — иначе они не добавятся</div>}
+          {parsed.some((c) => c.startMin == null) && (
+            <div class="hint danger-text">
+              {store.hasBells() || bells.length ? 'У некоторых пар нет ни времени, ни номера пары — они не добавятся' : 'Для пар без времени задай звонки — иначе они не добавятся'}
+            </div>
+          )}
           {store.classes().length > 0 && parsed.length > 0 && (
             <Segments value={replace ? 'replace' : 'add'} onChange={(v) => setReplace(v === 'replace')} options={[{ value: 'add', title: 'Добавить к текущему' }, { value: 'replace', title: 'Заменить всё' }]} />
           )}

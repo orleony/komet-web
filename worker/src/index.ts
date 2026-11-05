@@ -41,14 +41,26 @@ async function sha256(text: string): Promise<string> {
   return [...new Uint8Array(hash)].map((b) => b.toString(16).padStart(2, '0')).join('')
 }
 
+/** Сервисы push браузеров: Apple, Google (Chrome/Android), Mozilla, Microsoft */
+const pushHosts = [/^web\.push\.apple\.com$/, /\.push\.apple\.com$/, /^fcm\.googleapis\.com$/, /^android\.googleapis\.com$/,
+  /^updates\.push\.services\.mozilla\.com$/, /^push\.services\.mozilla\.com$/, /\.notify\.windows\.com$/]
+
 function validSubscription(s: any): s is Subscription {
-  return s && typeof s.endpoint === 'string' && s.endpoint.startsWith('https://') && typeof s.keys?.p256dh === 'string' && typeof s.keys?.auth === 'string'
+  if (!s || typeof s.endpoint !== 'string' || typeof s.keys?.p256dh !== 'string' || typeof s.keys?.auth !== 'string') return false
+  if (s.endpoint.length > 1000 || s.keys.p256dh.length > 200 || s.keys.auth.length > 100) return false
+  try {
+    const url = new URL(s.endpoint)
+    return url.protocol === 'https:' && pushHosts.some((h) => h.test(url.hostname))
+  } catch {
+    return false
+  }
 }
 
 function cleanReminders(list: unknown): Reminder[] {
   if (!Array.isArray(list)) return []
+  const now = Math.floor(Date.now() / 1000)
   return list
-    .filter((r) => r && Number.isFinite(r.at) && typeof r.title === 'string')
+    .filter((r) => r && Number.isFinite(r.at) && r.at > now && typeof r.title === 'string')
     .slice(0, MAX_REMINDERS)
     .map((r) => ({
       at: Math.floor(r.at),
@@ -86,6 +98,13 @@ export default {
       if (request.method === 'POST' && parts[0] === 'devices' && parts.length === 1) {
         const body: any = await request.json()
         if (!validSubscription(body.subscription)) return json({ error: 'bad subscription' }, 400)
+        const old = await env.DB.prepare('SELECT id FROM devices WHERE subscription LIKE ?').bind(`%"endpoint":${JSON.stringify(body.subscription.endpoint)}%`).all<{ id: string }>()
+        if (old.results.length) {
+          await env.DB.batch(old.results.flatMap((d) => [
+            env.DB.prepare('DELETE FROM reminders WHERE device = ?').bind(d.id),
+            env.DB.prepare('DELETE FROM devices WHERE id = ?').bind(d.id),
+          ]))
+        }
         const id = crypto.randomUUID()
         const token = crypto.randomUUID() + crypto.randomUUID()
         await env.DB.prepare('INSERT INTO devices (id, token_hash, subscription, updated) VALUES (?, ?, ?, ?)')
@@ -135,30 +154,40 @@ export default {
   /** Раз в минуту: рассылаем всё, чьё время пришло; совсем старое (больше 15 минут) — просто выбрасываем. */
   async scheduled(_event: unknown, env: Env): Promise<void> {
     const now = Math.floor(Date.now() / 1000)
+    // Забираем (удаляем с возвратом) — следующая рассылка этих напоминаний уже не увидит
     const due = await env.DB.prepare(
-      'SELECT r.rowid AS rid, r.device, r.at, r.title, r.body, r.tag, d.subscription FROM reminders r JOIN devices d ON d.id = r.device WHERE r.at <= ? ORDER BY r.at LIMIT 500',
-    ).bind(now).all<{ rid: number; device: string; at: number; title: string; body: string; tag: string; subscription: string }>()
+      'DELETE FROM reminders WHERE rowid IN (SELECT rowid FROM reminders WHERE at <= ? ORDER BY at LIMIT 500) RETURNING device, at, title, body, tag',
+    ).bind(now).all<{ device: string; at: number; title: string; body: string; tag: string }>()
 
+    const subs = new Map<string, Subscription | null>()
     const gone = new Set<string>()
     for (const r of due.results) {
       if (gone.has(r.device) || r.at < now - 15 * 60) continue
+      if (!subs.has(r.device)) {
+        const row = await env.DB.prepare('SELECT subscription FROM devices WHERE id = ?').bind(r.device).first<{ subscription: string }>()
+        subs.set(r.device, row ? JSON.parse(row.subscription) : null)
+      }
+      const sub = subs.get(r.device)
+      if (!sub) continue
       try {
-        const result = await sendPush(JSON.parse(r.subscription), { title: r.title, body: r.body, tag: r.tag }, vapid(env))
+        const result = await sendPush(sub, { title: r.title, body: r.body, tag: r.tag }, vapid(env))
         if (result.gone) gone.add(r.device)
-      } catch {
+        else if (result.status >= 400) console.log('push failed', result.status)
+      } catch (e) {
         // Сеть моргнула — это напоминание пропускаем, остальные шлём
+        console.log('push error', String(e))
       }
     }
-    if (due.results.length) {
-      await env.DB.batch([
-        ...due.results.map((r) => env.DB.prepare('DELETE FROM reminders WHERE rowid = ?').bind(r.rid)),
-        ...[...gone].flatMap((id) => [
-          env.DB.prepare('DELETE FROM reminders WHERE device = ?').bind(id),
-          env.DB.prepare('DELETE FROM devices WHERE id = ?').bind(id),
-        ]),
-      ])
+    if (gone.size) {
+      await env.DB.batch([...gone].flatMap((id) => [
+        env.DB.prepare('DELETE FROM reminders WHERE device = ?').bind(id),
+        env.DB.prepare('DELETE FROM devices WHERE id = ?').bind(id),
+      ]))
     }
-    // Устройства, которые не заходили 60 дней, забываем
-    await env.DB.prepare('DELETE FROM devices WHERE updated < ?').bind(Date.now() - 60 * 86_400_000).run()
+    // Устройства, которые не заходили 60 дней, забываем — вместе с их напоминаниями
+    await env.DB.batch([
+      env.DB.prepare('DELETE FROM devices WHERE updated < ?').bind(Date.now() - 60 * 86_400_000),
+      env.DB.prepare('DELETE FROM reminders WHERE device NOT IN (SELECT id FROM devices)'),
+    ])
   },
 }

@@ -14,7 +14,7 @@ export function Tasks() {
   const [areaID, setAreaID] = useState<string | null>(null)
   const [showDone, setShowDone] = useState(false)
   const inboxCount = store.openTasks(store.inbox.id).length
-  const showInbox = !all.length || inboxCount > 0
+  const showInbox = !all.length || inboxCount > 0 || areaID === store.inbox.id
   const area = all.find((a) => a.id === areaID) ?? (areaID === store.inbox.id || !all.length ? store.inbox : all[0])
   const isInbox = area.id === store.inbox.id
   const color = areaColor(area)
@@ -26,6 +26,7 @@ export function Tasks() {
     const on = id === area.id
     return (
       <button key={id} class="chip" style={{ flex: 'none', height: 32, padding: '0 12px', fontSize: 13, color: on ? '#fff' : 'var(--secondary)', background: on ? tint(c, 0.85) : 'var(--card)' }}
+        ref={(el) => { if (on && el) el.scrollIntoView({ inline: 'nearest', block: 'nearest' }) }}
         onClick={() => { setAreaID(id); setShowDone(false) }}>
         <AreaIcon name={icon} size={12} /> {title} {count > 0 && <span style={{ opacity: 0.7 }}>{count}</span>}
       </button>
@@ -34,7 +35,7 @@ export function Tasks() {
 
   return (
     <div>
-      <div class="row" style={{ overflowX: 'auto', padding: 'calc(var(--safe-top) + 10px) 18px 2px', gap: 8 }}>
+      <div class="row chips-row" style={{ overflowX: 'auto', padding: 'calc(var(--safe-top) + 10px) 18px 2px', gap: 8 }}>
         {showInbox && chip(store.inbox.id, store.inbox.title, store.inbox.icon, palette[8], inboxCount)}
         {all.map((a) => chip(a.id, a.title, a.icon, areaColor(a), store.openTasks(a.id).length))}
       </div>

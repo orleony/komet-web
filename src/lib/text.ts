@@ -2,7 +2,7 @@
 import { Priority } from '../model'
 import type { Area } from '../model'
 import type { AreaTemplate } from './templates'
-import { addDays, addMonths, dayOffset, endOfWeek, nextWeekday, startOfToday } from './dates'
+import { addDays, addMonths, dayOffset, endOfWeek, isoWeekday, nextWeekday, startOfToday } from './dates'
 import { normalize } from './keywords'
 import { router } from './router'
 
@@ -57,7 +57,7 @@ function split(s: string, pattern: string): string[] {
 /** Не буква до и после — граница слова, которая работает с кириллицей. */
 const word = (alternatives: string) => `(?<![\\p{L}])(?:${alternatives})(?![\\p{L}])`
 
-const fillers = word('ну|типа|короче|как бы|в общем-то|в общем|так сказать|э{2,}|м{2,}|эм+')
+const fillers = word('ну|типа|короче|как бы|в общем-то|в общем(?=\\s*[,.!?]|\\s*$)|так сказать|э{2,}|м{2,}|эм+')
 
 const isLetter = (c: string) => /\p{L}/u.test(c)
 const isSpace = (c: string) => /\s/.test(c)
@@ -83,7 +83,7 @@ export function clean(text: string): string {
 // MARK: - Задачи
 
 const separators =
-  '[.?;]+(?=\\s|$)|\\n+|(?:,\\s*(?:а\\s+|и\\s+)?|\\s+(?:а|и)\\s+)(?:ещё|еще|также|потом|плюс)(?![\\p{L}])' +
+  '(?:[?;]+|(?<!(?:^|[^\\p{L}])(?:ауд|ул|д|стр|г|кв|корп|каб|пр|т\\.е|т\\.к|им|см|ст|доц|проф|преп|тел|\\p{Lu}))\\.+)(?=\\s|$)|\\n+|(?:,\\s*(?:а\\s+|и\\s+)?|\\s+(?:а|и)\\s+)(?:ещё|еще|также|потом|плюс)(?![\\p{L}])' +
   '|\\s+(?:потом|затем)\\s+(?=\\p{L})'
 
 const leadingWords =
@@ -112,7 +112,8 @@ export function tasksFrom(text: string, hints: string[] = [], now = new Date()):
     let title = box.title
     title = replace(title, '\\s{2,}', ' ')
     title = replace(title, '\\s+([,.;:])', '$1')
-    title = replace(title, ',{2,}', ',').trim()
+    title = replace(title, ',{2,}', ',')
+    title = replace(title, '(?:\\s*,){2,}', ',').trim()
     title = trimChars(replace(title, leadingWords, ''), ' ,.:;-—!')
     if ([...title].length < 2) {
       if (due) {
@@ -146,11 +147,11 @@ export function tasksFrom(text: string, hints: string[] = [], now = new Date()):
 /** «!!» / «важно» → важная, «!!!» / «срочно» → срочная. «Срочно» остаётся — это ещё и срок «сегодня». */
 export function extractPriority(box: { title: string }): Priority {
   let priority = Priority.Normal
-  const notBefore = '(?<!не\\s)(?<!не)'
-  if (test(box.title, '!{3,}') || test(box.title, notBefore + word('срочно|очень важно|критично'))) priority = Priority.Urgent
-  else if (test(box.title, '!{2}') || test(box.title, notBefore + word('важно|важное|важная'))) priority = Priority.Important
+  const negated = test(box.title, word('не\\s+(?:очень\\s+)?(?:срочно|важно|важное|важная|критично)'))
+  if (test(box.title, '!{3,}') || (!negated && test(box.title, word('срочно|очень важно|критично')))) priority = Priority.Urgent
+  else if (test(box.title, '!{2}') || (!negated && test(box.title, word('важно|важное|важная')))) priority = Priority.Important
   box.title = replace(box.title, '\\s*!{2,}', '')
-  box.title = replace(box.title, '[,\\s]*' + notBefore + word('очень важно|критично|важно|важное|важная'), '')
+  box.title = replace(box.title, word('(?:это\\s+)?(?:не\\s+)?(?:очень\\s+)?(?:важно|важное|важная|критично)'), '')
   return priority
 }
 
@@ -164,14 +165,16 @@ const weekdayForms: [number, string, string, string][] = [
   [7, 'воскресенья', 'воскресенью', 'воскресенье'],
 ]
 
+const weekdayShortForms = ['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'вс']
+
 const monthsGenitive = 'января|февраля|марта|апреля|мая|июня|июля|августа|сентября|октября|ноября|декабря'
 
 /** Находит срок в тексте и вырезает его. «до субботы» — крайний день пятница, «к субботе» — суббота. */
 export function extractDue(box: { title: string }, weak: { value: boolean }, now = new Date()): Date | null {
   const inclusive = test(box.title, word('включительно'))
-  box.title = replace(box.title, '[,\\s]*' + word('включительно'), '')
+  box.title = replace(box.title, word('включительно'), '')
   const urgent = test(box.title, '(?<!не\\s)' + word('срочно'))
-  box.title = replace(box.title, '[,\\s]*' + word('срочно'), '')
+  box.title = replace(box.title, word('(?:не\\s+|очень\\s+)?срочно'), '')
   const date = findDue(box, inclusive, weak, now)
   if (date) return date
   return urgent ? startOfToday(now) : null
@@ -189,7 +192,7 @@ function findDue(box: { title: string }, inclusive: boolean, weak: { value: bool
   }
 
   // «до 5 ноября», «к 12 декабря»
-  let m = groups(box.title, '(?:(до|к)\\s+)?(?<![\\p{L}\\d])(\\d{1,2})\\s+(' + monthsGenitive + ')(?![\\p{L}])' + '(?:\\s+(\\d{4})(?:\\s*(?:года|год|г\\.?))?)?')
+  let m = groups(box.title, '(?:(до|к|на)\\s+)?(?<![\\p{L}\\d])(\\d{1,2})\\s+(' + monthsGenitive + ')(?![\\p{L}])' + '(?:\\s+(\\d{4})(?:\\s*(?:года|год|г\\.?))?)?')
   if (m) {
     const months = monthsGenitive.split('|')
     const day = Number(m.values[1])
@@ -203,7 +206,9 @@ function findDue(box: { title: string }, inclusive: boolean, weak: { value: bool
 
   // «до 12.11», «к 05.12.2026». Месяц — две цифры; «в 15.30» — время; после числа не должно быть единиц.
   const units = '(?!\\s*(?:литр\\p{L}*|л|кг|г|гр|км|м|мл|ч|час\\p{L}*|мин\\p{L}*|руб\\p{L}*|р|раз\\p{L}*|шт|%)(?![\\p{L}]))'
-  m = groups(box.title, '(?:(до|к)\\s+)?(?<![\\p{L}\\d.])(?<!в\\s)(?<!во\\s)(\\d{1,2})\\.(\\d{2})(?:\\.(\\d{2}|\\d{4}))?(?![\\d.])' + units)
+  const explicitDay = test(box.title, word('(?:сегодня|завтра|послезавтра)'))
+  const range = '(?!\\s*(?:-|–|—|до)\\s*\\d{1,2}[.:]\\d{2})'
+  m = explicitDay ? null : groups(box.title, '(?:(до|к|на)\\s+)?(?<![\\p{L}\\d.])(?<!в\\s)(?<!во\\s)(?<!с\\s)(?<!со\\s)(\\d{1,2})\\.(\\d{2})(?:\\.(\\d{2}|\\d{4}))?(?![\\d.])' + units + range)
   if (m) {
     const date = makeDate(Number(m.values[1]), Number(m.values[2]), m.values[3] ? Number(m.values[3]) : null, today)
     if (date) {
@@ -213,12 +218,13 @@ function findDue(box: { title: string }, inclusive: boolean, weak: { value: bool
   }
 
   // «через 3 дня», «через 2 недели»
-  m = groups(box.title, word('через\\s+(\\d{1,4})\\s+(дн\\p{L}*|день|недел\\p{L}*)'))
+  m = groups(box.title, word('через\\s+(\\d{1,4}|пару)\\s+(дн\\p{L}*|день|недел\\p{L}*|месяц\\p{L}*)'))
   if (m) {
-    const n = Number(m.values[0] ?? 0)
-    const days = Math.min((m.values[1] ?? '').toLowerCase().startsWith('недел') ? n * 7 : n, 3650)
+    const n = (m.values[0] ?? '').toLowerCase() === 'пару' ? 2 : Number(m.values[0] ?? 0)
+    const unit = (m.values[1] ?? '').toLowerCase()
     cut(m)
-    return addDays(today, days)
+    if (unit.startsWith('месяц')) return addMonths(today, Math.min(n, 120))
+    return addDays(today, Math.min(unit.startsWith('недел') ? n * 7 : n, 3650))
   }
 
   const relative: [string, () => Date][] = [
@@ -233,6 +239,8 @@ function findDue(box: { title: string }, inclusive: boolean, weak: { value: bool
     [word('через месяц'), () => addMonths(today, 1)],
     [word('на следующей неделе'), () => addDays(endOfWeek(now), 7)],
     [word('(?:на|до конца) (?:этой )?недел[еи]|на неделе'), () => endOfWeek(now)],
+    [word('(?:до|к) конц[ау] месяца|в конце месяца'), () => new Date(today.getFullYear(), today.getMonth() + 1, 0)],
+    [word('на выходных'), () => (isoWeekday(today) >= 6 ? today : nextWeekday(6, now))],
   ]
   for (const [pattern, date] of relative) {
     if (test(box.title, pattern)) {
@@ -253,7 +261,7 @@ function findDue(box: { title: string }, inclusive: boolean, weak: { value: bool
       cut(w)
       return nextWeekday(iso, now)
     }
-    w = groups(box.title, word('(?:в|во|на)\\s+' + acc))
+    w = groups(box.title, word('(?:в|во|на)\\s+(?:' + acc + '|' + weekdayShortForms[iso - 1] + ')'))
     if (w) {
       cut(w)
       return nextWeekday(iso, now)

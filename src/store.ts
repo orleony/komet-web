@@ -6,7 +6,7 @@ import { addDays, dayHeader, daysLeft, isoWeekday, minutesOfDay, nowSec, startOf
 import { normalize } from './lib/keywords'
 import { placeholderArea, router } from './lib/router'
 import type { AreaTemplate } from './lib/templates'
-import { inferBells } from './lib/schedule'
+import { inferBells, slotIndex } from './lib/schedule'
 import type { BellSlot, ParsedClass } from './lib/schedule'
 
 // MARK: - Локальные настройки (только этого устройства)
@@ -98,7 +98,11 @@ export async function load() {
   loaded.value = true
   // Просим не стирать данные при нехватке места
   navigator.storage?.persist?.()
-  setInterval(() => (clock.value = new Date()), 30_000)
+  setInterval(() => {
+    const prev = clock.value
+    clock.value = new Date()
+    if (prev.toDateString() !== clock.value.toDateString()) cleanUp()
+  }, 30_000)
   let pending: number | undefined
   effect(() => {
     const snapshot = data.value
@@ -329,6 +333,8 @@ export const notes = () =>
     .filter((n) => !n.deletedAt && !n.trashedAt)
     .sort((a, b) => (a.isPinned !== b.isPinned ? (a.isPinned ? -1 : 1) : b.updatedAt - a.updatedAt))
 
+/** Заметка, даже если она в корзине (для «Вернуть») */
+export const noteAny = (id: string) => data.value.notes.find((n) => n.id === id && !n.deletedAt) ?? null
 export const note = (id: string) => data.value.notes.find((n) => n.id === id && !n.deletedAt && !n.trashedAt) ?? null
 
 export function addNote(text = '', html: string | null = null): Note {
@@ -418,18 +424,19 @@ export function bells(): BellSlot[] {
 
 export const hasBells = () => !!shared(bellsKey)
 
-/** Новые звонки; пары, которые шли по старым звонкам, переезжают на то же место в новых. */
+/** Новые звонки. next — в том же порядке, что старые (i-я пара → i-я пара), даже если время поменяли местами:
+ *  пара, стоявшая на i-й паре (с допуском ±15 мин), переезжает на новое время i-й пары. */
 export function setBells(next: BellSlot[]) {
   const old = bells()
   const now = nowSec()
   const moved = data.value.classes.map((c) => {
     if (c.deletedAt) return c
-    const i = old.findIndex((b) => b.start === c.startMin)
-    const target = i >= 0 ? next[i] : undefined
+    const i = slotIndex(old, c.startMin)
+    const target = i != null ? next[i] : undefined
     return target && (target.start !== c.startMin || target.end !== c.endMin) ? { ...c, startMin: target.start, endMin: target.end, updatedAt: now } : c
   })
   commit({ classes: moved })
-  setShared(bellsKey, JSON.stringify(next))
+  setShared(bellsKey, JSON.stringify([...next].sort((a, b) => a.start - b.start)))
 }
 
 export interface CellEntry {

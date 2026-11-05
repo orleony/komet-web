@@ -59,6 +59,10 @@ async function subscription(): Promise<PushSubscription> {
 
 /** Включить напоминания: разрешение, подписка, первое расписание. Вызывать по нажатию кнопки. */
 export async function enablePush(): Promise<void> {
+  // Старое устройство на сервере — убираем, чтобы напоминания не приходили дважды
+  const old = loadDevice()
+  if (old) await api(`/devices/${old.id}`, 'DELETE', { token: old.token }).catch(() => {})
+  saveDevice(null)
   const permission = await Notification.requestPermission()
   if (permission !== 'granted') {
     pushState.value = permission === 'denied' ? 'denied' : 'off'
@@ -86,11 +90,18 @@ export async function testPush(): Promise<void> {
 
 let pending: number | undefined
 let lastSent = ''
+/** Одна синхронизация за раз — иначе две параллельные могут завести два устройства */
+let syncing: Promise<void> | null = null
 
 /** Отправить серверу свежее расписание (через пару секунд после правок). */
-async function syncReminders() {
+function syncReminders(): Promise<void> {
+  if (!syncing) syncing = doSync().catch(() => {}).finally(() => (syncing = null))
+  return syncing
+}
+
+async function doSync() {
   const device = loadDevice()
-  if (!SERVER || !device || Notification.permission !== 'granted') return
+  if (!SERVER || !device || !('Notification' in window) || Notification.permission !== 'granted') return
   const reminders = buildReminders()
   const sub = await subscription()
   const payload = JSON.stringify([reminders, sub.endpoint])

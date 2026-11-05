@@ -1,5 +1,5 @@
 {
-  "generated" : 1793867304.790951,
+  "generated" : 1793869204.880028,
   "results" : [
     {
       "clean" : "Сдать лабу по матанализу до пятницы.",
@@ -153,7 +153,7 @@
           "area" : "personal",
           "due" : -999,
           "priority" : 0,
-          "title" : "Это не, просто подумать",
+          "title" : "Это, просто подумать",
           "weak" : false,
           "weekday" : 0
         }
@@ -706,6 +706,389 @@
           "title" : "Купить продукты",
           "weak" : false,
           "weekday" : 5
+        }
+      ]
+    },
+    {
+      "clean" : "Купить хлеб не срочно.",
+      "kind" : "task",
+      "phrase" : "купить хлеб не срочно",
+      "tasks" : [
+        {
+          "area" : "personal",
+          "due" : -999,
+          "priority" : 0,
+          "title" : "Купить хлеб",
+          "weak" : false,
+          "weekday" : 0
+        }
+      ]
+    },
+    {
+      "clean" : "Не срочно купить хлеб.",
+      "kind" : "task",
+      "phrase" : "не срочно купить хлеб",
+      "tasks" : [
+        {
+          "area" : "personal",
+          "due" : -999,
+          "priority" : 0,
+          "title" : "Купить хлеб",
+          "weak" : false,
+          "weekday" : 0
+        }
+      ]
+    },
+    {
+      "clean" : "Очень срочно сдать.",
+      "kind" : "task",
+      "phrase" : "очень срочно сдать",
+      "tasks" : [
+        {
+          "area" : "study",
+          "due" : 0,
+          "priority" : 2,
+          "title" : "Сдать",
+          "weak" : false,
+          "weekday" : 4
+        }
+      ]
+    },
+    {
+      "clean" : "Позвонить маме, не очень важно.",
+      "kind" : "task",
+      "phrase" : "позвонить маме, не очень важно",
+      "tasks" : [
+        {
+          "area" : "personal",
+          "due" : -999,
+          "priority" : 0,
+          "title" : "Позвонить маме",
+          "weak" : false,
+          "weekday" : 0
+        }
+      ]
+    },
+    {
+      "clean" : "Сдать лабу, это важно.",
+      "kind" : "task",
+      "phrase" : "сдать лабу, это важно",
+      "tasks" : [
+        {
+          "area" : "study",
+          "due" : -999,
+          "priority" : 1,
+          "title" : "Сдать лабу",
+          "weak" : false,
+          "weekday" : 0
+        }
+      ]
+    },
+    {
+      "clean" : "Сдать лабу в ауд. 301.",
+      "kind" : "task",
+      "phrase" : "сдать лабу в ауд. 301",
+      "tasks" : [
+        {
+          "area" : "study",
+          "due" : -999,
+          "priority" : 0,
+          "title" : "Сдать лабу в ауд. 301",
+          "weak" : false,
+          "weekday" : 0
+        }
+      ]
+    },
+    {
+      "clean" : "Сходить на ул. Ленина 5.",
+      "kind" : "task",
+      "phrase" : "сходить на ул. Ленина 5",
+      "tasks" : [
+        {
+          "area" : "personal",
+          "due" : -999,
+          "priority" : 0,
+          "title" : "Сходить на ул. Ленина 5",
+          "weak" : false,
+          "weekday" : 0
+        }
+      ]
+    },
+    {
+      "clean" : "Т.е. сделать дз.",
+      "kind" : "task",
+      "phrase" : "т.е. сделать дз",
+      "tasks" : [
+        {
+          "area" : "study",
+          "due" : -999,
+          "priority" : 0,
+          "title" : "Т.е. сделать дз",
+          "weak" : false,
+          "weekday" : 0
+        }
+      ]
+    },
+    {
+      "clean" : "Отнести книгу Иванову И. И. завтра.",
+      "kind" : "task",
+      "phrase" : "отнести книгу Иванову И. И. завтра",
+      "tasks" : [
+        {
+          "area" : "personal",
+          "due" : 1,
+          "priority" : 0,
+          "title" : "Отнести книгу Иванову И. И",
+          "weak" : false,
+          "weekday" : 5
+        }
+      ]
+    },
+    {
+      "clean" : "Пара 10.10 завтра.",
+      "kind" : "task",
+      "phrase" : "пара 10.10 завтра",
+      "tasks" : [
+        {
+          "area" : "study",
+          "due" : 1,
+          "priority" : 0,
+          "title" : "Пара 10.10",
+          "weak" : false,
+          "weekday" : 5
+        }
+      ]
+    },
+    {
+      "clean" : "С 10.10 до 11.45 пара.",
+      "kind" : "task",
+      "phrase" : "с 10.10 до 11.45 пара",
+      "tasks" : [
+        {
+          "area" : "study",
+          "due" : -999,
+          "priority" : 0,
+          "title" : "С 10.10 до 11.45 пара",
+          "weak" : false,
+          "weekday" : 0
+        }
+      ]
+    },
+    {
+      "clean" : "Сдать отчёт к 12.11.",
+      "kind" : "task",
+      "phrase" : "сдать отчёт к 12.11",
+      "tasks" : [
+        {
+          "area" : "study",
+          "due" : 7,
+          "priority" : 0,
+          "title" : "Сдать отчёт",
+          "weak" : false,
+          "weekday" : 4
+        }
+      ]
+    },
+    {
+      "clean" : "Написать в общем чате про пару.",
+      "kind" : "task",
+      "phrase" : "написать в общем чате про пару",
+      "tasks" : [
+        {
+          "area" : "study",
+          "due" : -999,
+          "priority" : 0,
+          "title" : "Написать в общем чате про пару",
+          "weak" : false,
+          "weekday" : 0
+        }
+      ]
+    },
+    {
+      "clean" : "Купить молоко.",
+      "kind" : "task",
+      "phrase" : "в общем, купить молоко",
+      "tasks" : [
+        {
+          "area" : "personal",
+          "due" : -999,
+          "priority" : 0,
+          "title" : "Купить молоко",
+          "weak" : false,
+          "weekday" : 0
+        }
+      ]
+    },
+    {
+      "clean" : "Перенести на 10 ноября.",
+      "kind" : "task",
+      "phrase" : "перенести на 10 ноября",
+      "tasks" : [
+        {
+          "area" : "personal",
+          "due" : 5,
+          "priority" : 0,
+          "title" : "Перенести",
+          "weak" : false,
+          "weekday" : 2
+        }
+      ]
+    },
+    {
+      "clean" : "Созвон в пт.",
+      "kind" : "task",
+      "phrase" : "созвон в пт",
+      "tasks" : [
+        {
+          "area" : "personal",
+          "due" : 1,
+          "priority" : 0,
+          "title" : "Созвон",
+          "weak" : false,
+          "weekday" : 5
+        }
+      ]
+    },
+    {
+      "clean" : "Через пару дней позвонить.",
+      "kind" : "task",
+      "phrase" : "через пару дней позвонить",
+      "tasks" : [
+        {
+          "area" : "personal",
+          "due" : 2,
+          "priority" : 0,
+          "title" : "Позвонить",
+          "weak" : false,
+          "weekday" : 6
+        }
+      ]
+    },
+    {
+      "clean" : "Через 2 месяца оформить визу.",
+      "kind" : "task",
+      "phrase" : "через 2 месяца оформить визу",
+      "tasks" : [
+        {
+          "area" : "personal",
+          "due" : 61,
+          "priority" : 0,
+          "title" : "Оформить визу",
+          "weak" : false,
+          "weekday" : 2
+        }
+      ]
+    },
+    {
+      "clean" : "До конца месяца оплатить.",
+      "kind" : "task",
+      "phrase" : "до конца месяца оплатить",
+      "tasks" : [
+        {
+          "area" : "personal",
+          "due" : 25,
+          "priority" : 0,
+          "title" : "Оплатить",
+          "weak" : false,
+          "weekday" : 1
+        }
+      ]
+    },
+    {
+      "clean" : "На выходных убраться.",
+      "kind" : "task",
+      "phrase" : "на выходных убраться",
+      "tasks" : [
+        {
+          "area" : "personal",
+          "due" : 2,
+          "priority" : 0,
+          "title" : "Убраться",
+          "weak" : false,
+          "weekday" : 6
+        }
+      ]
+    },
+    {
+      "clean" : "Купить молоко. позвонить маме.",
+      "kind" : "task",
+      "phrase" : "купить молоко. позвонить маме",
+      "tasks" : [
+        {
+          "area" : "personal",
+          "due" : -999,
+          "priority" : 0,
+          "title" : "Купить молоко",
+          "weak" : false,
+          "weekday" : 0
+        },
+        {
+          "area" : "personal",
+          "due" : -999,
+          "priority" : 0,
+          "title" : "Позвонить маме",
+          "weak" : false,
+          "weekday" : 0
+        }
+      ]
+    },
+    {
+      "clean" : "Сдать, важно, лабу.",
+      "kind" : "task",
+      "phrase" : "сдать, важно, лабу",
+      "tasks" : [
+        {
+          "area" : "study",
+          "due" : -999,
+          "priority" : 1,
+          "title" : "Сдать, лабу",
+          "weak" : false,
+          "weekday" : 0
+        }
+      ]
+    },
+    {
+      "clean" : "Свести бит для битвы.",
+      "kind" : "task",
+      "phrase" : "свести бит для битвы",
+      "tasks" : [
+        {
+          "area" : "music",
+          "due" : -999,
+          "priority" : 0,
+          "title" : "Свести бит для битвы",
+          "weak" : false,
+          "weekday" : 0
+        }
+      ]
+    },
+    {
+      "clean" : "Сходить в зал.",
+      "kind" : "task",
+      "phrase" : "сходить в зал",
+      "tasks" : [
+        {
+          "area" : "personal",
+          "due" : -999,
+          "priority" : 0,
+          "title" : "Сходить в зал",
+          "weak" : false,
+          "weekday" : 0
+        }
+      ]
+    },
+    {
+      "clean" : "Съездить на залив.",
+      "kind" : "task",
+      "phrase" : "съездить на залив",
+      "tasks" : [
+        {
+          "area" : "personal",
+          "due" : -999,
+          "priority" : 0,
+          "title" : "Съездить на залив",
+          "weak" : false,
+          "weekday" : 0
         }
       ]
     }

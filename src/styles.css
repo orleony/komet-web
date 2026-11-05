@@ -214,3 +214,15 @@ input, textarea, select { font-size: 16px; }
 .sgrid-item { font-size: 10px; line-height: 1.15; font-weight: 600; color: var(--class); background: rgba(99, 168, 255, 0.16); border-radius: 6px; padding: 3px 3px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; word-break: break-word; hyphens: auto; text-align: center; flex: 1; display: flex; align-items: center; justify-content: center; }
 .sgrid-item.half { -webkit-line-clamp: 2; }
 .sgrid-item.dim { opacity: 0.35; }
+
+/* Найдено тестированием: длинные слова не распирают экран; ровные пилюли; сетка не растягивается */
+.grow { min-width: 0; }
+.card, .pill, .note-row b, .toggle-title { overflow-wrap: anywhere; }
+.pill { text-align: left; }
+.chips-row { scrollbar-width: none; }
+.chips-row::-webkit-scrollbar { display: none; }
+.format-bar button { min-width: 34px; }
+.sgrid-item { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; max-height: 3.6em; align-self: stretch; }
+.sgrid-item.half { -webkit-line-clamp: 2; max-height: 2.4em; }
+.sgrid-cell { max-height: 64px; }
+.toast { display: flex; align-items: center; white-space: nowrap; }

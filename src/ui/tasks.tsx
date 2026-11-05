@@ -117,7 +117,7 @@ export function TaskEditor({ task, onClose }: { task: TaskItem; onClose: () => v
         <Segments value={priority} onChange={setPriority} options={[Priority.Normal, Priority.Important, Priority.Urgent].map((p) => ({ value: p, title: priorityTitle[p] }))} />
       </div>
       <div class="row">
-        <button class="btn danger" onClick={() => { store.deleteTask(task); sheet.close() }}>Удалить</button>
+        <button class="btn danger" onClick={() => { store.deleteTask(task); showToast('Задача в корзине', 'Вернуть', () => store.restoreTask({ ...task, trashedAt: 1 })); sheet.close() }}>Удалить</button>
       </div>
     </Sheet>
   )

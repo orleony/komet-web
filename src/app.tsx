@@ -23,6 +23,11 @@ export function App() {
   const [noteID, setNoteID] = useState<string | null>(null)
   const urgent = store.urgentCount()
 
+  const showSchedule = store.prefs.value.showSchedule
+  useEffect(() => {
+    if (!showSchedule && tab === 'schedule') setTab('today')
+  }, [showSchedule, tab])
+
   useEffect(() => {
     history.replaceState(null, '', '#' + tab)
     document.querySelector('.content')?.scrollTo(0, 0)
@@ -54,7 +59,14 @@ export function App() {
           </button>
         ))}
       </nav>
-      {toast.value && <div class="toast">{toast.value}</div>}
+      {toast.value && (
+        <div class="toast" role="status">
+          {toast.value.text}
+          {toast.value.action && (
+            <button class="btn-text" style={{ marginLeft: 12, padding: 0 }} onClick={() => { toast.value?.run?.(); toast.value = null }}>{toast.value.action}</button>
+          )}
+        </div>
+      )}
     </div>
   )
 }
