@@ -5,7 +5,8 @@ import type { ClassSlot, WeekParity } from '../model'
 import { addDays, dayMonth, duration, isoWeekday, minutesOfDay, nowSec, startOfWeek, time, weekdayNames } from '../lib/dates'
 import * as store from '../store'
 import { Screen, Segments, Sheet, useSheet, palette, tint } from '../ui/controls'
-import { BellsWizard, ScheduleGrid, ScheduleImport, ScheduleSetup, SubjectSuggestions, TeacherField } from './schedule-tools'
+import { BellsWizard, RoomField, ScheduleGrid, ScheduleImport, ScheduleSetup, SubjectSuggestions, TeacherField, fieldInvalid } from './schedule-tools'
+import { roomProblem, teacherProblem } from '../lib/validate'
 
 const classColor = palette[0]
 
@@ -159,12 +160,15 @@ function ClassEditor({ slot, isNew, onClose }: { slot: ClassSlot; isNew: boolean
   const sheet = useSheet(onClose)
   const [s, setS] = useState(slot)
   const set = <K extends keyof ClassSlot>(k: K, v: ClassSlot[K]) => setS((prev) => ({ ...prev, [k]: v }))
+  // Аудитория без цифр или препод не полностью — сначала поправить
+  const invalid = fieldInvalid(s.room, isNew ? '' : slot.room, roomProblem) || fieldInvalid(s.teacher, isNew ? '' : slot.teacher, teacherProblem)
   const save = () => {
+    if (invalid) return
     store.saveClass({ ...s, title: s.title.trim(), endMin: Math.max(s.endMin, s.startMin + 5) })
     sheet.close()
   }
   return (
-    <Sheet closing={sheet.closing} title={isNew ? 'Новая пара' : 'Пара'} onClose={sheet.close} action={<button class="btn primary" disabled={!s.title.trim()} onClick={save}>Готово</button>}>
+    <Sheet closing={sheet.closing} title={isNew ? 'Новая пара' : 'Пара'} onClose={sheet.close} action={<button class="btn primary" disabled={!s.title.trim() || invalid} onClick={save}>Готово</button>}>
       <div class="field"><input placeholder="Предмет" value={s.title} onInput={(e) => set('title', e.currentTarget.value)} /></div>
       <SubjectSuggestions title={s.title} onPick={(c) => setS((prev) => ({ ...prev, title: c.title, teacher: prev.teacher || c.teacher, room: prev.room || c.room, kind: prev.kind || c.kind }))} />
       <div class="row">
@@ -189,11 +193,9 @@ function ClassEditor({ slot, isNew, onClose }: { slot: ClassSlot; isNew: boolean
           <div class="field"><input type="time" value={toTime(s.endMin)} onInput={(e) => { const m = fromTime(e.currentTarget.value); if (m != null) set('endMin', m) }} /></div>
         </div>
       </div>
-      <TeacherField value={s.teacher} subject={s.title} placeholder="Преподаватель (полностью)" onChange={(v) => set('teacher', v)} />
-      <div class="row">
-        <div class="field grow"><input placeholder="Аудитория" value={s.room} onInput={(e) => set('room', e.currentTarget.value)} /></div>
-        <div class="field grow"><input placeholder="Лекция, семинар…" value={s.kind} onInput={(e) => set('kind', e.currentTarget.value)} /></div>
-      </div>
+      <TeacherField value={s.teacher} original={isNew ? '' : slot.teacher} subject={s.title} onChange={(v) => set('teacher', v)} />
+      <RoomField value={s.room} original={isNew ? '' : slot.room} onChange={(v) => set('room', v)} />
+      <div class="field"><input placeholder="Лекция, семинар…" value={s.kind} onInput={(e) => set('kind', e.currentTarget.value)} /></div>
       <div>
         <div class="label">Когда</div>
         <Segments value={s.parity} onChange={(p) => set('parity', p)} options={[{ value: 'every', title: 'Каждую' }, { value: 'numerator', title: 'Числитель' }, { value: 'denominator', title: 'Знаменатель' }]} />

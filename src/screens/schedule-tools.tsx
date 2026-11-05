@@ -4,6 +4,7 @@ import { useMemo, useRef, useState } from 'preact/hooks'
 import { CalendarPlus, ClipboardPaste, Copy, GraduationCap, Plus, X } from 'lucide-preact'
 import type { ClassSlot, WeekParity } from '../model'
 import { plural, time, weekdayNames, weekdayShort } from '../lib/dates'
+import { capitalizeName, roomProblem, teacherProblem } from '../lib/validate'
 import { computeBells, defaultBellParams, parseICS, parseScheduleText, slotIndex } from '../lib/schedule'
 import type { BellParams, BellSlot, ParsedClass } from '../lib/schedule'
 import * as store from '../store'
@@ -271,8 +272,31 @@ export function SubjectSuggestions({ title, onPick }: { title: string; onPick: (
 
 /** Поле «Преподаватель» с подсказками: Komet помнит преподов, как и предметы.
  *  Пустое поле у знакомого предмета — подсказка, кто его ведёт; начал печатать — совпадения по фамилии. */
-export function TeacherField({ value, subject, onChange, placeholder = 'Преподаватель' }: { value: string; subject: string; onChange: (v: string) => void; placeholder?: string }) {
+/** Подсказка под полем, если значение не прошло проверку */
+function FieldProblem({ text }: { text: string | null }) {
+  return text ? <div class="field-problem">{text}</div> : null
+}
+
+/** Проверяем только то, что ввели или поменяли сейчас: старые данные (с Mac, из вставки) не мешают сохранить */
+export const fieldInvalid = (value: string, original: string, problem: (v: string) => string | null) =>
+  value.trim() !== original.trim() && problem(value) != null
+
+/** Поле «Аудитория»: номер с цифрами (1230а, 5-12) или понятное место (спортзал, онлайн) */
+export function RoomField({ value, original = '', onChange }: { value: string; original?: string; onChange: (v: string) => void }) {
   const [focused, setFocused] = useState(false)
+  const problem = !focused && fieldInvalid(value, original, roomProblem) ? roomProblem(value) : null
+  return (
+    <div class="section" style={{ gap: 4 }}>
+      <div class={'field' + (problem ? ' invalid' : '')}><input placeholder="Аудитория" value={value} inputMode="text" onInput={(e) => onChange(e.currentTarget.value)}
+        onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} /></div>
+      <FieldProblem text={problem} />
+    </div>
+  )
+}
+
+export function TeacherField({ value, subject, onChange, original = '', placeholder = 'Преподаватель: Иванов Иван Иванович' }: { value: string; subject: string; onChange: (v: string) => void; original?: string; placeholder?: string }) {
+  const [focused, setFocused] = useState(false)
+  const problem = !focused && fieldInvalid(value, original, teacherProblem) ? teacherProblem(value) : null
   const q = value.trim().toLowerCase().replace(/ё/g, 'е')
   const usual = !q ? store.teacherOf(subject) : null
   const all = store.knownTeachers()
@@ -293,8 +317,15 @@ export function TeacherField({ value, subject, onChange, placeholder = 'Преп
   }
   return (
     <div class="section" style={{ gap: 6 }}>
-      <div class="field"><input placeholder={placeholder} value={value} onInput={(e) => onChange(e.currentTarget.value)}
-        onFocus={() => setFocused(true)} onBlur={() => setTimeout(() => setFocused(false), 150)} /></div>
+      <div class={'field' + (problem ? ' invalid' : '')}><input placeholder={placeholder} value={value} autoCapitalize="words" onInput={(e) => onChange(e.currentTarget.value)}
+        onFocus={() => setFocused(true)}
+        onBlur={(e) => {
+          // «иванов иван иванович» → с заглавных
+          const v = e.currentTarget.value
+          if (v !== capitalizeName(v)) onChange(capitalizeName(v))
+          setTimeout(() => setFocused(false), 150)
+        }} /></div>
+      <FieldProblem text={problem} />
       {(usual || found.length > 0) && (
         <div class="row wrap" style={{ gap: 6 }}>
           {usual && <button class="chip" style={{ color: classColor, background: tint(classColor, 0.16) }} onClick={() => onChange(usual)}>{usual}</button>}
@@ -308,7 +339,7 @@ export function TeacherField({ value, subject, onChange, placeholder = 'Преп
 }
 
 /** Поля одной пары. update — частичная правка поверх свежего состояния: быстрый ввод не затирает соседние поля. */
-function EntryForm({ entry, update, suggestions }: { entry: CellEntry; update: (patch: Partial<CellEntry>) => void; suggestions: ClassSlot[] }) {
+function EntryForm({ entry, original, update, suggestions }: { entry: CellEntry; original?: ClassSlot; update: (patch: Partial<CellEntry>) => void; suggestions: ClassSlot[] }) {
   const q = entry.title.trim().toLowerCase()
   const matches = q ? suggestions.filter((s) => s.title.toLowerCase().includes(q) && s.title.toLowerCase() !== q).slice(0, 4) : []
   return (
@@ -331,8 +362,8 @@ function EntryForm({ entry, update, suggestions }: { entry: CellEntry; update: (
             onClick={() => update({ kind: entry.kind === k ? '' : k })}>{k === 'Лабораторная работа' ? 'Лаба' : k}</button>
         ))}
       </div>
-      <div class="field"><input placeholder="Аудитория" value={entry.room} onInput={(e) => update({ room: e.currentTarget.value })} /></div>
-      <TeacherField value={entry.teacher} subject={entry.title} onChange={(teacher) => update({ teacher })} />
+      <RoomField value={entry.room} original={original?.room} onChange={(room) => update({ room })} />
+      <TeacherField value={entry.teacher} original={original?.teacher} subject={entry.title} onChange={(teacher) => update({ teacher })} />
     </div>
   )
 }
@@ -362,7 +393,15 @@ function CellEditor({ day, slot, index, onClose }: { day: number; slot: BellSlot
   const filled = (list: CellEntry[]) => list.some((e) => e.title.trim())
   const ids = (list: CellEntry[]) => list.map((e) => e.id).filter((x): x is string => !!x)
 
+  /** Аудитория без цифр или препод не полностью — «Готово» ждёт исправления */
+  const invalid = (split ? [...num, ...den] : every).some((e) => {
+    if (!e.title.trim()) return false
+    const o = inCell.find((c) => c.id === e.id)
+    return fieldInvalid(e.room, o?.room ?? '', roomProblem) || fieldInvalid(e.teacher, o?.teacher ?? '', teacherProblem)
+  })
+
   const save = () => {
+    if (invalid) return
     // Удаляем только пары, которые были видны в выбранном режиме и которые убрали:
     // «каждую неделю» в клетке с числителем/знаменателем не пропадает молча
     const entries = split ? [...num, ...den] : every
@@ -384,7 +423,7 @@ function CellEditor({ day, slot, index, onClose }: { day: number; slot: BellSlot
               <button class="btn-text" style={{ color: 'var(--secondary)' }} onClick={() => set((prev) => prev.filter((_, j) => j !== i))}>Убрать</button>
             </div>
           )}
-          <EntryForm entry={e} update={(x) => set((prev) => prev.map((y, j) => (j === i ? { ...y, ...x } : y)))} suggestions={suggestions} />
+          <EntryForm entry={e} original={inCell.find((c) => c.id === e.id)} update={(x) => set((prev) => prev.map((y, j) => (j === i ? { ...y, ...x } : y)))} suggestions={suggestions} />
         </div>
       ))}
       {filled(list) && (
@@ -397,7 +436,7 @@ function CellEditor({ day, slot, index, onClose }: { day: number; slot: BellSlot
 
   return (
     <Sheet closing={sheet.closing} title={`${weekdayNames[day - 1]}, ${index + 1} пара`} onClose={sheet.close}
-      action={<button class="btn primary" onClick={save}>Готово</button>}>
+      action={<button class="btn primary" disabled={invalid} onClick={save}>Готово</button>}>
       <div class="hint" style={{ marginTop: -6 }}>{time(slot.start)} — {time(slot.end)}</div>
       <Segments value={split ? 'split' : 'every'} onChange={(v) => {
         const toSplit = v === 'split'
