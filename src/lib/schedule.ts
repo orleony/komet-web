@@ -180,8 +180,9 @@ function parseLine(input: string, day: number): ParsedClass {
     teachers.push(`${a} ${b} ${d}`)
     return ' '
   })
-  // «И.И. Иванов» — инициалы впереди
-  line = line.replace(/(?<![\p{L}])(\p{Lu})\.\s?(\p{Lu})\.\s?(\p{Lu}\p{Ll}+(?:-\p{Lu}\p{Ll}+)?)(?![\p{L}])(?!\s*\p{Lu}\.)/gu, (_m, b, d, a) => {
+  // «И.И. Иванов» — инициалы впереди, но только перед словом, похожим на фамилию:
+  // в «Сидоров С.С. История России» инициалы относятся к Сидорову
+  line = line.replace(/(?<![\p{L}])(\p{Lu})\.\s?(\p{Lu})\.\s?(\p{Lu}\p{Ll}*(?:ов|ев|ёв|ин|ын|ий|ой|ова|ева|ёва|ина|ына|ая|енко|ук|юк|ич|ко|ян|дзе|швили|их|ых|ер|ман|ц)(?:-\p{Lu}\p{Ll}+)?)(?![\p{L}])(?!\s*\p{Lu}\.)/gu, (_m, b, d, a) => {
     teachers.push(`${a} ${b}.${d}.`)
     return ' '
   })
@@ -215,13 +216,17 @@ function parseLine(input: string, day: number): ParsedClass {
 }
 
 /** Строка — заголовок дня? Возвращает день и остаток строки (после названия дня и даты). */
+const monthWords = 'январ\\p{L}*|феврал\\p{L}*|март\\p{L}*|апрел\\p{L}*|ма[йя]|июн\\p{L}*|июл\\p{L}*|август\\p{L}*|сентябр\\p{L}*|октябр\\p{L}*|ноябр\\p{L}*|декабр\\p{L}*'
+/** «09.11», «09.11.2026», «9 ноября», «9 ноября 2026 г.» */
+const dateText = new RegExp(`\\d{1,2}[./]\\d{1,2}(?:[./]\\d{2,4})?(?:\\s*г\\.?)?|\\d{1,2}\\s+(?:${monthWords})(?:\\s+\\d{4})?(?:\\s*г\\.?)?`, 'giu')
+
 function dayHeader(line: string): { day: number; rest: string } | null {
-  const dated = line.replace(/\d{1,2}[./]\d{1,2}(?:[./]\d{2,4})?(?:\s*г\.?)?/g, ' ').replace(/[\s,.:;()–—-]+/g, ' ').trim()
+  const dated = line.replace(dateText, ' ').replace(/[\s,.:;()–—-]+/g, ' ').trim()
   for (const [re, n] of dayNames) {
     const m = re.exec(line)
     if (!m) continue
     if (m.index === 0) {
-      const rest = line.slice(m[0].length).replace(/^[\s.:,–—-]+/, '').replace(/^\d{1,2}[./]\d{1,2}(?:[./]\d{2,4})?(?:\s*г\.?)?\s*/, '').replace(/^[\s.:,–—-]+/, '')
+      const rest = line.slice(m[0].length).replace(/^[\s.:,–—-]+/, '').replace(new RegExp(`^(?:${dateText.source})\\s*`, 'iu'), '').replace(/^[\s.:,()–—-]+/, '')
       return { day: n, rest }
     }
     if (re.test(dated) && dated.replace(re, '').trim() === '') return { day: n, rest: '' }
@@ -234,10 +239,17 @@ const cleanLine = (raw: string) => raw.replace(/[\t•·|]+/g, ' ').replace(/^[^
 /** Строка — только признак недели («Числитель», «(знам.)», «Чётная неделя»)? */
 function parityOnly(line: string): WeekParity | null {
   for (const [re, p] of parities) {
-    if (re.test(line) && !line.replace(re, ' ').replace(/[\s()[\]*:.,;–—-]+/g, '')) return p
+    if (re.test(line) && !line.replace(re, ' ').replace(/(?<![\p{L}])недел\p{L}*|\d+/giu, ' ').replace(/[\s()[\]*:.,;–—-]+/g, '')) return p
   }
   return null
 }
+
+/** Строки, которые не пары: перерыв, обед, «нет пар», «выходной», «окно» */
+const skipLine = /^(?:больш\p{L}*\s+)?(?:перерыв|перемена|обед|окно|нет\s+пар\p{L}*|выходн\p{L}*|пар\s+нет)(?![\p{L}])/iu
+
+/** Две пары делят слот: у одной числитель, у другой знаменатель, у первой время есть */
+const alternates = (a: ParsedClass, b: ParsedClass) =>
+  a.parity !== 'every' && b.parity !== 'every' && a.parity !== b.parity && (a.startMin != null || a.number != null)
 
 /** Разбирает вставленное расписание: заголовки дней (в т. ч. с датой), «1 пара», время, вид занятия, аудитория,
  *  преподаватели, числитель/знаменатель (и разделами «Нечётная неделя … Чётная неделя …»).
@@ -256,9 +268,8 @@ export function parseScheduleText(text: string, bells: BellSlot[] | ((day: numbe
   const inherited = new Set<ParsedClass>()
 
   const lines = text.split(/\r?\n/).map(cleanLine).filter(Boolean)
-  lines.forEach((raw, index) => {
+  lines.forEach((raw) => {
     let line = raw
-    const nextIsDay = index + 1 < lines.length && dayHeader(lines[index + 1]) != null
 
     // Заголовок дня: «Понедельник», «ПН, 09.11», «09.11.2026 Понедельник», «Пн 1 Матан», «Понедельник (числитель)»
     const header = dayHeader(line)
@@ -268,7 +279,7 @@ export function parseScheduleText(text: string, bells: BellSlot[] | ((day: numbe
       last = null
       dayParity = null
       line = header.rest
-      if (!line) return
+      if (!line || skipLine.test(line)) return
       const p = parityOnly(line)
       if (p) {
         dayParity = p
@@ -276,11 +287,22 @@ export function parseScheduleText(text: string, bells: BellSlot[] | ((day: numbe
       }
     }
 
-    // «Нечётная неделя» отдельной строкой — раздел расписания, а не поле последней пары
+    // Перерыв, обед, «нет пар», «окно» — не пары, и их время не должно достаться следующей паре
+    if (skipLine.test(line.replace(/^\d\s*(?:-?\s*я)?\s*(?:пара)?[.):–—-]?\s*/iu, ''))) {
+      pending = null
+      return
+    }
+
+    // «Нечётная неделя» / «Числитель:» отдельной строкой — заголовок раздела, а не поле последней пары.
+    // «числ.», «(знаменатель)», «по чётным неделям» под предметом — поле этой пары.
     const p = parityOnly(line)
-    if (p && !pending && (!last || nextIsDay || (/недел/iu.test(line) && !/[()]/.test(line)))) {
-      sectionParity = p
-      dayParity = null
+    const heading = p && !pending && (day == null || !last || /:\s*$/.test(line) || (/недел/iu.test(line) && !/^\(/.test(line) && !/^по\s/iu.test(line)))
+    if (p && heading) {
+      // «Нечётная неделя» — до конца текста; «Числитель:» внутри дня — до следующего дня
+      if (day == null || /недел/iu.test(line)) {
+        sectionParity = p
+        dayParity = null
+      } else dayParity = p
       pending = null
       last = null
       return
@@ -293,6 +315,11 @@ export function parseScheduleText(text: string, bells: BellSlot[] | ((day: numbe
         c.number = pending.number
         c.startMin = pending.startMin
         c.endMin = pending.endMin
+      } else if (!pending && last && c.number == null && c.startMin == null && alternates(last, c)) {
+        // «Матан (числ.) / Физика (знам.)» под одним временем — пары чередуются в одном слоте
+        c.number = last.number
+        c.startMin = last.startMin
+        c.endMin = last.endMin
       }
       if (pending?.parity && pending.parity !== 'every' && c.parity === 'every') c.parity = pending.parity
       if (c.parity === 'every' && (dayParity ?? sectionParity)) {
@@ -327,6 +354,13 @@ export function parseScheduleText(text: string, bells: BellSlot[] | ((day: numbe
       if ((last.parity === 'every' || inherited.has(last)) && c.parity !== 'every') {
         last.parity = c.parity
         inherited.delete(last)
+        // «Матан / числитель / Физика / знаменатель» — Физика в том же слоте, что и Матан
+        const prev = out[out.length - 2]
+        if (prev && last.startMin == null && last.number == null && prev.weekday === last.weekday && alternates(prev, last)) {
+          last.number = prev.number
+          last.startMin = prev.startMin
+          last.endMin = prev.endMin
+        }
       }
     } else if (pending) {
       if (c.parity !== 'every') pending.parity = c.parity
@@ -442,6 +476,14 @@ export function parseICS(text: string, parityOf: (d: Date) => WeekParity, bells:
     const until = /UNTIL=(\d{8}(?:T\d{6}Z?)?)/.exec(e.rrule)
     if (until && (icsDate(until[1])?.getTime() ?? Infinity) < now.getTime()) continue
     if (/COUNT=1(?!\d)/.test(e.rrule)) e.rrule = ''
+    // COUNT=10 с прошлого сентября — тоже закончилось
+    const count = /COUNT=(\d+)/.exec(e.rrule)
+    if (count) {
+      const perWeek = /BYDAY=([A-Z,]+)/.exec(e.rrule)?.[1].split(',').length ?? 1
+      const every = Number(/INTERVAL=(\d+)/.exec(e.rrule)?.[1] ?? 1)
+      const weeks = Math.ceil(Number(count[1]) / perWeek) * every
+      if (e.start.getTime() + weeks * 7 * 86_400_000 < now.getTime()) continue
+    }
     const interval = /INTERVAL=(\d+)/.exec(e.rrule)
     const weekly = /FREQ=WEEKLY/.test(e.rrule)
     const byDay = /BYDAY=([A-Z,]+)/.exec(e.rrule)?.[1].split(',').map((d) => icsDays[d]).filter(Boolean)

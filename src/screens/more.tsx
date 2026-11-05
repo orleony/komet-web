@@ -75,7 +75,7 @@ function Week() {
   return (
     <Screen title="Неделя">
       {days.map((d) => {
-        const slots = store.classesOn(d)
+        const slots = store.prefs.value.showSchedule ? store.classesOn(d) : []
         const tasks = plan.filter((t) => toDate(t.dueDate)!.toDateString() === d.toDateString())
         const isToday = d.toDateString() === today.toDateString()
         return (

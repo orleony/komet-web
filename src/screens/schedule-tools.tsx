@@ -217,7 +217,7 @@ export function ScheduleGrid({ shown, onDayBells }: { shown: WeekParity | null; 
                   <button key={`${d}-${i}`} class={'sgrid-cell' + (here.length ? ' filled' : '')} onClick={() => setCell({ day: d, slot: i })}>
                     {custom.has(d) && <span class="sgrid-own-time">{time(own[i].start)}</span>}
                     {every && <span class="sgrid-item">{every}</span>}
-                    {!every && (num || den) && (
+                    {(num || den) && (
                       <>
                         <span class={'sgrid-item half' + (dim('numerator') ? ' dim' : '')}>{num ?? '—'}</span>
                         <span class={'sgrid-item half' + (dim('denominator') ? ' dim' : '')}>{den ?? '—'}</span>
@@ -277,14 +277,19 @@ export function TeacherField({ value, subject, onChange, placeholder = 'Преп
   const usual = !q ? store.teacherOf(subject) : null
   const all = store.knownTeachers()
   // Последний преподаватель в списке через запятую — то, что печатают сейчас
-  const current = q.split(/\s*,\s*/).pop() ?? ''
+  const typed = q.split(/\s*[,;]\s*/)
+  const current = typed.pop() ?? ''
+  const already = new Set(typed.map((t) => t.trim()).filter(Boolean))
+  const norm = (t: string) => t.toLowerCase().replace(/ё/g, 'е').trim()
+  const candidates = all.filter((t) => !already.has(norm(t)) && norm(t) !== current)
   const found = current
-    ? all.filter((t) => { const n = t.toLowerCase().replace(/ё/g, 'е'); return n !== current && n.split(/\s+/).some((w) => w.startsWith(current)) || (n.startsWith(current) && n !== current) }).slice(0, 4)
-    : focused && !usual ? all.slice(0, 4) : []
+    ? candidates.filter((t) => norm(t).split(/\s+/).some((w) => w.startsWith(current))).slice(0, 4)
+    : focused && !usual ? candidates.slice(0, 4) : []
+  /** Выбранный — вместо того, что печатают сейчас; уже вписанные остаются */
   const pick = (t: string) => {
-    const parts = value.split(/\s*,\s*/)
+    const parts = value.split(/\s*[,;]\s*/).map((x) => x.trim())
     parts[parts.length - 1] = t
-    onChange(current ? parts.join(', ') : t)
+    onChange(parts.filter(Boolean).join(', '))
   }
   return (
     <div class="section" style={{ gap: 6 }}>
@@ -332,11 +337,13 @@ function EntryForm({ entry, update, suggestions }: { entry: CellEntry; update: (
   )
 }
 
+let formKeyNext = 0
+
 function CellEditor({ day, slot, index, onClose }: { day: number; slot: BellSlot; index: number; onClose: () => void }) {
   const sheet = useSheet(onClose)
   const [inCell] = useState(() => store.classesOnWeekday(day).filter((c) => Math.abs(c.startMin - slot.start) <= 15))
   const entry = (c: ClassSlot | null, p: WeekParity): CellEntry =>
-    ({ id: c?.id, parity: p, title: c?.title ?? '', teacher: c?.teacher ?? '', room: c?.room ?? '', kind: c?.kind ?? '' })
+    ({ id: c?.id, key: c?.id ?? 'new' + formKeyNext++, parity: p, title: c?.title ?? '', teacher: c?.teacher ?? '', room: c?.room ?? '', kind: c?.kind ?? '' })
   /** Все пары клетки этой недели (две подгруппы — две записи); пустая клетка — одна пустая запись */
   const load = (p: WeekParity) => {
     const list = inCell.filter((c) => c.parity === p).map((c) => entry(c, p))
@@ -353,19 +360,24 @@ function CellEditor({ day, slot, index, onClose }: { day: number; slot: BellSlot
     return [...byTitle.values()]
   }, [])
   const filled = (list: CellEntry[]) => list.some((e) => e.title.trim())
-  const opened = inCell.map((c) => c.id)
+  const ids = (list: CellEntry[]) => list.map((e) => e.id).filter((x): x is string => !!x)
 
   const save = () => {
-    store.setCell(day, slot, split ? [...num, ...den] : every, opened)
+    // Удаляем только пары, которые были видны в выбранном режиме и которые убрали:
+    // «каждую неделю» в клетке с числителем/знаменателем не пропадает молча
+    const entries = split ? [...num, ...den] : every
+    const opened = split ? [...ids(load('numerator')), ...ids(load('denominator'))] : ids(load('every'))
+    const converted = ids(entries).filter((id) => inCell.some((c) => c.id === id))
+    store.setCell(day, slot, entries, [...new Set([...opened, ...converted])])
     sheet.close()
   }
-  const as = (list: CellEntry[], p: WeekParity, keepID: boolean) => list.filter((e) => e.title.trim()).map((e) => ({ ...e, parity: p, id: keepID ? e.id : undefined }))
+  const as = (list: CellEntry[], p: WeekParity, keepID: boolean) => list.filter((e) => e.title.trim()).map((e) => ({ ...e, parity: p, id: keepID ? e.id : undefined, key: keepID ? e.key : 'new' + formKeyNext++ }))
 
   /** Список пар одной недели: обычно одна, у подгрупп — несколько */
   const editors = (list: CellEntry[], set: (f: (prev: CellEntry[]) => CellEntry[]) => void, p: WeekParity) => (
     <>
       {list.map((e, i) => (
-        <div key={i} class="section" style={{ gap: 6 }}>
+        <div key={e.key ?? e.id} class="section" style={{ gap: 6 }}>
           {list.length > 1 && (
             <div class="row">
               <div class="label grow" style={{ margin: 0 }}>{i + 1}-я подгруппа</div>
@@ -407,7 +419,7 @@ function CellEditor({ day, slot, index, onClose }: { day: number; slot: BellSlot
         </>
       )}
       {inCell.length > 0 && (
-        <div class="row"><button class="btn danger" onClick={() => { store.setCell(day, slot, [], opened); sheet.close() }}><X size={14} /> Очистить клетку</button></div>
+        <div class="row"><button class="btn danger" onClick={() => { store.setCell(day, slot, [], inCell.map((c) => c.id)); sheet.close() }}><X size={14} /> Очистить клетку</button></div>
       )}
     </Sheet>
   )

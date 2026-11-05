@@ -89,26 +89,37 @@ async function readSnapshot(): Promise<Snapshot | null> {
   })
 }
 
-async function writeSnapshot(s: Snapshot) {
+/** Запись в одной транзакции: прочитали сохранённое (другая вкладка могла успеть), слили со своим, записали.
+ *  Транзакции IndexedDB к одному хранилищу идут по очереди — две вкладки не затрут друг друга. */
+async function saveMerged(mine: Snapshot): Promise<Snapshot> {
   const db = await openDB()
-  await new Promise<void>((resolve, reject) => {
+  return new Promise<Snapshot>((resolve, reject) => {
     const tx = db.transaction('kv', 'readwrite')
-    tx.objectStore('kv').put(s, 'snapshot')
-    tx.oncomplete = () => resolve()
+    const store = tx.objectStore('kv')
+    let result = mine
+    const req = store.get('snapshot')
+    req.onsuccess = () => {
+      const disk = req.result == null ? null : cleanSnapshot(req.result)
+      if (disk) result = mergeSnapshots(mine, disk, false).snapshot
+      store.put(result, 'snapshot')
+    }
+    tx.oncomplete = () => resolve(result)
     tx.onerror = () => reject(tx.error)
     tx.onabort = () => reject(tx.error)
   })
 }
 
-/** Слияние двух снимков: по каждой записи побеждает более свежая правка. */
-export function mergeSnapshots(local: Snapshot, incoming: Snapshot): { snapshot: Snapshot; count: number } {
+/** Слияние двух снимков: по каждой записи побеждает более свежая правка.
+ *  tie — при одинаковом времени правки выбирать по содержимому (для файлов с других устройств);
+ *  между вкладками одного телефона одинаковое время — это одна и та же запись, оставляем свою. */
+export function mergeSnapshots(local: Snapshot, incoming: Snapshot, tie = true): { snapshot: Snapshot; count: number } {
   let count = 0
   const merge = <T extends { id: string; updatedAt: number }>(mine: T[], other: T[]): T[] => {
     const byID = new Map(mine.map((x) => [x.id, x]))
     for (const r of other) {
       const m = byID.get(r.id)
-      if (!m || r.updatedAt > m.updatedAt || (r.updatedAt === m.updatedAt && tieKey(r) > tieKey(m))) {
-        if (m && tieKey(r) === tieKey(m)) continue
+      const newer = !m || r.updatedAt > m.updatedAt
+      if (newer || (tie && m && r.updatedAt === m.updatedAt && tieKey(r) > tieKey(m))) {
         byID.set(r.id, r)
         count++
       }
@@ -127,27 +138,82 @@ export function mergeSnapshots(local: Snapshot, incoming: Snapshot): { snapshot:
   }
 }
 
-/** Не удалось прочитать память — ничего не пишем, чтобы не затереть данные пустыми */
+/** Не удалось прочитать память — ничего не пишем, чтобы не затереть данные пустыми, и говорим об этом */
 let readFailed = false
+export const storageProblem = signal(false)
 const channel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('komet') : null
 
-/** Подтягиваем то, что сохранила другая вкладка (или окно) */
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
+async function readWithRetry(): Promise<Snapshot | null> {
+  for (let i = 0; ; i++) {
+    try {
+      return await readSnapshot()
+    } catch (e) {
+      dbPromise = null
+      if (i >= 2) throw e
+      await sleep(300 * (i + 1))
+    }
+  }
+}
+
+let dirty = false
+let pending: number | undefined
+let saving: Promise<void> | null = null
+
+function markDirty(delay = 250) {
+  dirty = true
+  clearTimeout(pending)
+  pending = window.setTimeout(flush, delay)
+}
+
+async function flush(): Promise<void> {
+  clearTimeout(pending)
+  if (saving) {
+    await saving
+    if (dirty) return flush()
+    return
+  }
+  if (!dirty || readFailed) return
+  dirty = false
+  saving = (async () => {
+    try {
+      const merged = await saveMerged(data.value)
+      // В сохранённом оказалось то, чего у нас нет (правка из другой вкладки) — показываем
+      if (merged !== data.value && mergeSnapshots(data.value, merged, false).count) commit(merged, false)
+      channel?.postMessage('saved')
+    } catch {
+      // Соединение с хранилищем могло сломаться — откроем заново и попробуем ещё раз
+      dbPromise = null
+      markDirty(3000)
+    }
+  })()
+  await saving
+  saving = null
+}
+
+/** Подтягиваем то, что сохранила другая вкладка (или окно); заодно чиним, если память не читалась */
 async function pullFromDisk() {
-  if (readFailed) return
   try {
-    const saved = await readSnapshot()
+    const saved = await readWithRetry()
+    if (readFailed) {
+      readFailed = false
+      storageProblem.value = false
+    }
     if (!saved) return
-    const { snapshot, count } = mergeSnapshots(data.value, saved)
+    const { snapshot, count } = mergeSnapshots(data.value, saved, false)
     if (count) commit(snapshot, false)
+    // А у нас есть то, чего нет на диске, — сохраняем
+    if (mergeSnapshots(saved, data.value, false).count) markDirty()
   } catch {}
 }
 
 export async function load() {
   let saved: Snapshot | null = null
   try {
-    saved = await readSnapshot()
+    saved = await readWithRetry()
   } catch {
     readFailed = true
+    storageProblem.value = true
   }
   data.value = saved ?? emptySnapshot
   upgradeDefaultKeywords()
@@ -163,37 +229,17 @@ export async function load() {
     if (prev.toDateString() !== clock.value.toDateString()) cleanUp()
   }, 30_000)
 
-  let pending: number | undefined
-  let dirty = false
-  const flush = async () => {
-    clearTimeout(pending)
-    if (!dirty || readFailed) return
-    dirty = false
-    try {
-      // Сначала берём то, что успела сохранить другая вкладка, — иначе затрём её правки
-      const disk = await readSnapshot()
-      if (disk) {
-        const { snapshot, count } = mergeSnapshots(data.value, disk)
-        if (count) commit(snapshot, false)
-      }
-      await writeSnapshot(data.value)
-      channel?.postMessage('saved')
-    } catch {
-      dirty = true
-    }
-  }
   effect(() => {
     data.value
     if (!loaded.peek() || fromDisk) return
-    dirty = true
-    clearTimeout(pending)
-    pending = window.setTimeout(flush, 250)
+    markDirty()
   })
   // Закрыли приложение сразу после правки — сохраняем не дожидаясь таймера
-  const hide = () => { if (document.visibilityState === 'hidden') flush() }
-  document.addEventListener('visibilitychange', hide)
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') flush()
+    else pullFromDisk()
+  })
   window.addEventListener('pagehide', () => flush())
-  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') pullFromDisk() })
   channel?.addEventListener('message', () => pullFromDisk())
 }
 
@@ -630,6 +676,8 @@ export function fitDayBells(weekday: number) {
 export interface CellEntry {
   /** Пара, из которой взята запись (новая — без id) */
   id?: string
+  /** Ключ формы в редакторе (не сохраняется) */
+  key?: string
   parity: WeekParity
   title: string
   teacher: string
@@ -682,7 +730,7 @@ export function addParsedClasses(list: ParsedClass[], replace: boolean) {
     }))
   const old = replace ? data.value.classes.map((c) => (c.deletedAt ? c : { ...c, deletedAt: now, updatedAt: now })) : data.value.classes
   // Та же пара уже есть (вставили расписание второй раз) — не дублируем
-  const key = (c: ClassSlot) => [c.weekday, c.startMin, normalize(c.title.trim()), c.parity, normalize(c.kind), normalize(c.room)].join('|')
+  const key = (c: ClassSlot) => [c.weekday, c.startMin, normalize(c.title.trim()), c.parity, normalize(c.kind), normalize(c.room), normalize(c.teacher)].join('|')
   const have = new Set(old.filter((c) => !c.deletedAt).map(key))
   const added = fresh.filter((c) => !have.has(key(c)) && (have.add(key(c)), true))
   commit({ classes: [...old, ...added] })
@@ -728,7 +776,8 @@ export type NowItem = { kind: 'task'; task: TaskItem } | { kind: 'current'; slot
 /** Горящая задача (сегодня/завтра/просрочена) важнее пары; идущая пара — важнее задачи на 2–3 дня. */
 export function nowItem(date: Date): NowItem | null {
   const minute = minutesOfDay(date)
-  const todays = classesOn(date)
+  // Вкладка «Пары» спрятана — пары нигде не показываем
+  const todays = prefs.value.showSchedule ? classesOn(date) : []
   const current = todays.find((c) => minute >= c.startMin && minute < c.endMin)
   const next = todays.find((c) => c.startMin > minute)
   const urgent = plan()[0]

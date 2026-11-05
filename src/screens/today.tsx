@@ -10,7 +10,7 @@ import { ClassRow, WeekParityPrompt } from './schedule'
 
 export function Today() {
   const now = store.clock.value
-  const parity = store.weekParity(now)
+  const parity = store.prefs.value.showSchedule ? store.weekParity(now) : null
   const [showAll, setShowAll] = useState(false)
   const plan = store.plan()
   const undated = store.undated()

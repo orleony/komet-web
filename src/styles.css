@@ -236,3 +236,6 @@ input, textarea, select { font-size: 16px; }
 /* Кнопка со стрелкой — больше зона нажатия, чем сам кружок */
 .circle-btn { position: relative; }
 .circle-btn::after { content: ''; position: absolute; inset: -5px; }
+
+/* Хранилище не открылось */
+.storage-banner { position: fixed; top: calc(var(--safe-top) + 8px); left: 12px; right: 12px; z-index: 130; background: rgba(255,107,97,0.18); border: 1.5px solid rgba(255,107,97,0.6); color: #ffd9d6; border-radius: 14px; padding: 10px 14px; font-size: 13px; font-weight: 600; line-height: 1.35; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }

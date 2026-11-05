@@ -62,6 +62,9 @@ export function App() {
         {tab === 'notes' && <Notes openID={noteID} setOpenID={setNoteID} />}
         {tab === 'more' && <More />}
       </div>
+      {store.storageProblem.value && (
+        <div class="storage-banner">Не получилось открыть сохранённые данные — изменения пока не сохраняются. Закрой Komet полностью и открой снова.</div>
+      )}
       <TaskEditorHost />
       <nav class="tabbar">
         {tabs.filter((t) => t.id !== 'schedule' || store.prefs.value.showSchedule).map(({ id, title, Icon }) => (

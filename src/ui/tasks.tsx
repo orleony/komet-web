@@ -16,8 +16,13 @@ export const editingTask = signal<string | null>(null)
 
 export function TaskEditorHost() {
   const id = editingTask.value
-  const task = id ? store.data.value.tasks.find((t) => t.id === id && !t.deletedAt) : null
-  if (!task) return null
+  // Задачу удалили или убрали в корзину (другая вкладка, автоочистка) — редактор закрываем
+  const task = id ? store.data.value.tasks.find((t) => t.id === id && !t.deletedAt && !t.trashedAt) : null
+  if (!task) {
+    // Иначе после «Вернуть» редактор открылся бы сам
+    if (id) queueMicrotask(() => { if (editingTask.peek() === id) editingTask.value = null })
+    return null
+  }
   return <TaskEditor key={id} task={task} onClose={() => { if (editingTask.peek() === id) editingTask.value = null }} />
 }
 
@@ -178,7 +183,8 @@ export function SmartCapture() {
     if (!analysis) return
     if (kind === 'note') {
       // «заметка: …» — подсказка для Komet, в саму заметку её не пишем
-      const body = text.trim().replace(/^(?:заметка|мысль|идея|набросок|строчк\p{L}*|задача|план|дедлайн)\s*:\s*/iu, '')
+      // Убираем только служебное «заметка:»; «Идея: …», «План: …» — часть самой заметки
+      const body = text.trim().replace(/^заметка\s*:\s*/iu, '')
       if (!body) return
       store.addNote(body)
       showToast('Заметка сохранена')
@@ -205,13 +211,14 @@ export function SmartCapture() {
           enterkeyhint={touch ? 'enter' : 'send'}
           onKeyDown={(e) => {
             // На телефоне Enter — новая строка (несколько задач столбиком), сохранить — кнопкой со стрелкой
-            if (e.key === 'Enter' && !e.shiftKey && !touch) {
+            // ⌘/Ctrl+Enter — отправить всегда (клавиатура у iPad)
+            if (e.key === 'Enter' && ((!e.shiftKey && !touch) || e.metaKey || e.ctrlKey)) {
               e.preventDefault()
               commit()
             }
           }}
         />
-        <button class="circle-btn" style={{ marginBottom: 3 }} onClick={commit} disabled={!trimmed} aria-label="Сохранить"><ArrowUp size={18} /></button>
+        <button class="circle-btn" style={{ marginBottom: 3 }} onClick={commit} disabled={!trimmed || (kind === 'task' && !analysis?.tasks.length)} aria-label="Сохранить"><ArrowUp size={18} /></button>
       </div>
       {analysis && (
         <div class="card" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>

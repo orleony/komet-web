@@ -97,3 +97,12 @@ describe('преподаватели запоминаются', () => {
     expect(store.teacherOf('История')).toBeNull()
   })
 })
+
+describe('клетка с «каждую неделю» и знаменателем', () => {
+  it('сохранение в режиме числ./знам. не удаляет пару «каждую неделю»', () => {
+    store.data.value = { ...store.data.value, classes: [cls('E', t(9, 0)), { ...cls('D', t(9, 0)), title: 'Физика', parity: 'denominator' }] }
+    const slot = { start: t(9, 0), end: t(10, 30) }
+    store.setCell(1, slot, [{ id: 'D', parity: 'denominator', title: 'Физика', teacher: 'Петров П.П.', room: '', kind: '' }], ['D'])
+    expect(store.classes().map((c) => c.id).sort()).toEqual(['D', 'E'])
+  })
+})

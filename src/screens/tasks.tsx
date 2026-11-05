@@ -39,7 +39,7 @@ export function Tasks() {
     return (
       <button key={id} class="chip" style={{ flex: 'none', height: 32, padding: '0 12px', fontSize: 13, color: on ? '#fff' : 'var(--secondary)', background: on ? tint(c, 0.85) : 'var(--card)' }}
         data-on={on ? '' : undefined}
-        onClick={() => { setAreaID(id); setShowDone(false) }}>
+        onClick={() => { setAreaID(id); setShowDone(false); setDoneLimit(50) }}>
         <AreaIcon name={icon} size={12} /> {title} {count > 0 && <span style={{ opacity: 0.7 }}>{count}</span>}
       </button>
     )
@@ -71,7 +71,7 @@ export function Tasks() {
               {showDone ? <ChevronDown size={14} /> : <ChevronRight size={14} />} Выполнено <span class="count">{done.length}</span>
             </button>
             {showDone && done.slice(0, doneLimit).map((t) => <TaskRow key={t.id} task={t} />)}
-            {showDone && done.length > doneLimit && <button class="btn-text" style={{ alignSelf: 'flex-start' }} onClick={() => setDoneLimit(doneLimit + 100)}>Показать ещё {done.length - doneLimit}</button>}
+            {showDone && done.length > doneLimit && <button class="btn-text" style={{ alignSelf: 'flex-start' }} onClick={() => setDoneLimit(doneLimit + 100)}>Показать ещё {Math.min(100, done.length - doneLimit)}</button>}
           </div>
         )}
       </div>

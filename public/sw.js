@@ -1,14 +1,41 @@
 // Komet: работа без интернета и приём напоминаний.
-const CACHE = 'komet-v2'
+const CACHE = 'komet-v3'
 
+// Установка: свежая страница и все файлы её сборки — чтобы первый же запуск без сети не был белым экраном
 self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(CACHE).then((c) => c.addAll(['./', './index.html', './manifest.webmanifest', './icons/icon-192.png'])))
+  event.waitUntil(
+    (async () => {
+      const cache = await caches.open(CACHE)
+      await cache.addAll(['./manifest.webmanifest', './icons/icon-192.png'])
+      const page = await fetch('./index.html', { cache: 'no-cache' })
+      if (!page.ok) throw new Error('index.html')
+      const html = await page.clone().text()
+      const assets = [...new Set(html.match(/\.?\/?assets\/[^"'\s)]+/g) ?? [])].map((a) => './' + a.replace(/^\.?\//, ''))
+      await cache.addAll(assets)
+      await cache.put('./index.html', page)
+    })(),
+  )
   self.skipWaiting()
 })
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)))).then(() => self.clients.claim()),
+    (async () => {
+      const keys = await caches.keys()
+      const cache = await caches.open(CACHE)
+      for (const k of keys.filter((k) => k !== CACHE)) {
+        // Из старого кэша забираем то, чего нет в новом (на всякий случай), и удаляем его
+        const old = await caches.open(k)
+        for (const req of await old.keys()) {
+          if (!(await cache.match(req))) {
+            const res = await old.match(req)
+            if (res) await cache.put(req, res)
+          }
+        }
+        await caches.delete(k)
+      }
+      await self.clients.claim()
+    })(),
   )
 })
 

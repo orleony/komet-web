@@ -84,7 +84,9 @@ export function clean(text: string): string {
 
 const separators =
   '(?:[?;]+|(?<!(?:^|[^\\p{L}])(?:ауд|ул|д|стр|г|кв|корп|каб|пр|т\\.е|т\\.к|им|см|ст|доц|проф|преп|тел|\\p{Lu}))\\.+)(?=\\s|$)|\\n+|(?:,\\s*(?:а\\s+|и\\s+)?|\\s+(?:а|и)\\s+)(?:ещё|еще|также|потом|плюс)(?![\\p{L}])' +
-  '|\\s+(?:потом|затем)\\s+(?=\\p{L})'
+  '|\\s+(?:потом|затем)\\s+(?=\\p{L})' +
+  // «в 18:00 сдать лабу, в 19:00 в зал» — две задачи
+  '|,\\s*(?=(?:в|во|к|ко|до|с|со)\\s+\\d{1,2}[:.]\\d{2}(?![\\d.]))'
 
 const leadingWords =
   '^(?:(?:и|а|ну|так|ещё|еще|потом|затем|также|плюс|мне|я|надо бы|надо|нужно бы|нужно|не забыть|не забудь(?:те)?|хочу|хотелось бы|обязательно|должен|должна)(?![\\p{L}])[,\\s]*)+'
@@ -114,6 +116,8 @@ export function tasksFrom(text: string, hints: string[] = [], now = new Date()):
     title = replace(title, '\\s+([,.;:])', '$1')
     title = replace(title, ',{2,}', ',')
     title = replace(title, '(?:\\s*,){2,}', ',').trim()
+    // «1) купить молоко», «- позвонить маме» — номер или маркер списка не нужен в названии
+    title = replace(title, '^(?:\\d{1,2}\\)|[-–—•*])\\s*', '')
     title = trimChars(replace(title, leadingWords, ''), ' ,.:;-—!')
     title = moveTime(title)
     // Остался один предлог («завтра на») — это не задача
@@ -151,8 +155,10 @@ const leftovers = '(?:на|до|к|ко|в|во|с|со|и|а|по|за|о|об|
 /** «В 18:00 сдать лабу» → «сдать лабу в 18:00»: время остаётся, но название начинается с дела. */
 export function moveTime(title: string): string {
   const m = groups(title, '^((?:в|во|к|ко|до|с|со)\\s+\\d{1,2}[:.]\\d{2}(?:\\s*(?:-|–|—|до)\\s*\\d{1,2}[:.]\\d{2})?)[,\\s]+(\\p{L}.*)$')
-  if (!m) return title
-  return `${m.values[1]} ${(m.values[0] ?? '').toLowerCase()}`
+  const rest = m?.values[1] ?? ''
+  // Осталось одно слово-связка («в 18:00 и») или там ещё одно время — не переставляем
+  if (!m || test(rest, '^' + leftovers + '$') || test(rest, '\\d{1,2}[:.]\\d{2}')) return title
+  return `${rest} ${(m.values[0] ?? '').toLowerCase()}`
 }
 
 /** «!!» / «важно» → важная, «!!!» / «срочно» → срочная. «Срочно» остаётся — это ещё и срок «сегодня». */
@@ -263,10 +269,11 @@ function findDue(box: { title: string }, inclusive: boolean, weak: { value: bool
 
   for (const [iso, gen, dat, acc] of weekdayForms) {
     // «в следующий вторник» — вторник следующей недели
-    let w = groups(box.title, word('(?:в|во|на|к|ко|до)?\\s*следующ(?:ий|ую|ее|ему|ей|его)\\s+(?:' + acc + '|' + dat + '|' + gen + ')'))
+    let w = groups(box.title, word('(в|во|на|к|ко|до)?\\s*следующ(?:ий|ую|ее|ему|ей|его)\\s+(?:' + acc + '|' + dat + '|' + gen + ')'))
     if (w) {
       cut(w)
-      return addDays(startOfWeek(now), 7 + iso - 1)
+      // «до следующей пятницы» — крайний день четверг, как и «до пятницы»
+      return deadline(addDays(startOfWeek(now), 7 + iso - 1), w.values[0]?.toLowerCase() === 'до')
     }
     w = groups(box.title, word('до\\s+' + gen))
     if (w) {
@@ -389,6 +396,8 @@ export function capitalizeFirst(s: string): string {
   return chars.length ? chars[0].toUpperCase() + chars.slice(1).join('') : s
 }
 
+const abbreviation = '(?:^|[^\\p{L}])(?:т\\.е|т\\.к|т\\.д|т\\.п|ауд|ул|д|стр|г|кв|корп|каб|пр|им|см|ст|доц|проф|преп|тел|напр|др)\\.$'
+
 /** Заглавная — в начале и после «. », «! », «? » и переноса; «example.com» и «15.00 созвон» не трогаем. */
 function capitalizeSentences(s: string): string {
   let out = ''
@@ -396,19 +405,21 @@ function capitalizeSentences(s: string): string {
   let afterPunctuation = false
   for (const ch of s) {
     if (afterPunctuation && !isSpace(ch) && !'.!?'.includes(ch)) capitalizeNext = false
-    // «5км пробежать», «100 отжиманий» — после числа заглавная не нужна
+    // «5км пробежать», «100 отжиманий» — после числа заглавная не нужна; «1) купить» — нужна
     if (/\d/.test(ch)) capitalizeNext = false
+    if (ch === ')' && /\d$/.test(out)) capitalizeNext = true
     if (capitalizeNext && isLetter(ch)) {
       out += ch.toUpperCase()
       capitalizeNext = false
     } else out += ch
     if ('.!?'.includes(ch)) {
-      capitalizeNext = true
+      // Точка после сокращения или инициала («т.е.», «ауд.», «И.») — не конец предложения
+      capitalizeNext = !(ch === '.' && (test(out.toLowerCase(), abbreviation) || /(?:^|[^\p{L}])\p{Lu}\.$/u.test(out)))
       afterPunctuation = true
     } else if (ch === '\n') {
       capitalizeNext = true
       afterPunctuation = false
-    } else if (!isSpace(ch)) afterPunctuation = false
+    } else afterPunctuation = false // после пробела — уже новое предложение
   }
   return out
 }
