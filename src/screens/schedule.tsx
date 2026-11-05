@@ -1,10 +1,11 @@
 import { useState } from 'preact/hooks'
-import { Plus, Settings2 } from 'lucide-preact'
+import { Bell, CalendarPlus, ClipboardPaste, Plus, Settings2 } from 'lucide-preact'
 import { parityTitle, uuid } from '../model'
 import type { ClassSlot, WeekParity } from '../model'
 import { addDays, dayMonth, duration, isoWeekday, minutesOfDay, nowSec, startOfWeek, time, weekdayNames } from '../lib/dates'
 import * as store from '../store'
 import { Screen, Segments, Sheet, useSheet, palette, tint } from '../ui/controls'
+import { BellsWizard, ScheduleGrid, ScheduleImport, ScheduleSetup } from './schedule-tools'
 
 const classColor = palette[0]
 
@@ -52,6 +53,8 @@ export function Schedule() {
   const [shownParity, setShownParity] = useState<WeekParity | null>(null)
   const [editing, setEditing] = useState<{ slot: ClassSlot; isNew: boolean } | null>(null)
   const [weekMenu, setWeekMenu] = useState(false)
+  const [tool, setTool] = useState<'bells' | 'text' | 'ics' | null>(null)
+  const view = store.prefs.value.scheduleView
   const now = store.clock.value
   const current = store.weekParity(now)
   const shown = shownParity ?? current
@@ -72,9 +75,13 @@ export function Schedule() {
     <Screen
       title="Расписание"
       subtitle={shown ? parityTitle[shown] + (isCurrent ? ' · эта неделя' : ' · следующая неделя') : 'Пары по дням недели'}
-      right={<button class="icon-btn filled" onClick={() => setWeekMenu(true)} aria-label="Какая сейчас неделя"><Settings2 size={18} /></button>}
+      right={<button class="icon-btn filled" onClick={() => setWeekMenu(true)} aria-label="Настройки расписания"><Settings2 size={18} /></button>}
     >
+      <ScheduleSetup onBells={() => { store.setPref('scheduleView', 'grid'); setTool('bells') }} onPaste={() => setTool('text')} onCalendar={() => setTool('ics')} />
       <WeekParityPrompt />
+      {store.classes().length > 0 || store.hasBells() ? (
+        <Segments value={view} onChange={(v) => store.setPref('scheduleView', v)} options={[{ value: 'grid', title: 'Сетка' }, { value: 'list', title: 'По дням' }]} />
+      ) : null}
       <div class="row">
         {current && (
           <div class="grow">
@@ -86,7 +93,9 @@ export function Schedule() {
         </button>
       </div>
 
-      {[1, 2, 3, 4, 5, 6, 7].map((day) => {
+      {view === 'grid' && (store.classes().length > 0 || store.hasBells()) && <ScheduleGrid shown={shown} />}
+
+      {view === 'list' && [1, 2, 3, 4, 5, 6, 7].map((day) => {
         const slots = store.classesOnWeekday(day).filter((s) => shown == null || s.parity === 'every' || s.parity === shown)
         if (day === 7 && !slots.length) return null
         const date = addDays(weekStart, day - 1)
@@ -108,15 +117,22 @@ export function Schedule() {
 
       {editing && <ClassEditor slot={editing.slot} isNew={editing.isNew} onClose={() => setEditing(null)} />}
       {weekMenu && (
-        <Sheet title="Какая сейчас неделя" onClose={() => setWeekMenu(false)}>
+        <Sheet title="Расписание" onClose={() => setWeekMenu(false)}>
+          <div class="label" style={{ margin: 0 }}>Какая сейчас неделя</div>
           {([['numerator', 'Эта неделя — числитель'], ['denominator', 'Эта неделя — знаменатель'], [null, 'Без деления на недели']] as const).map(([value, title]) => (
             <button key={title} class="link-row" style={value === current ? { color: 'var(--accent)' } : undefined}
               onClick={() => { store.setCurrentWeek(value); setShownParity(null); setWeekMenu(false) }}>
               {title}
             </button>
           ))}
+          <div class="label" style={{ margin: '6px 0 0' }}>Заполнить</div>
+          <button class="link-row" onClick={() => { setWeekMenu(false); setTool('bells') }}><span class="ic"><Bell size={16} /></span><b class="grow">Звонки</b></button>
+          <button class="link-row" onClick={() => { setWeekMenu(false); setTool('text') }}><span class="ic"><ClipboardPaste size={16} /></span><b class="grow">Вставить текстом или с фото</b></button>
+          <button class="link-row" onClick={() => { setWeekMenu(false); setTool('ics') }}><span class="ic"><CalendarPlus size={16} /></span><b class="grow">Загрузить календарь (.ics)</b></button>
         </Sheet>
       )}
+      {tool === 'bells' && <BellsWizard onClose={() => setTool(null)} onDone={() => store.setPref('scheduleView', 'grid')} />}
+      {(tool === 'text' || tool === 'ics') && <ScheduleImport mode={tool} onClose={() => setTool(null)} />}
     </Screen>
   )
 }

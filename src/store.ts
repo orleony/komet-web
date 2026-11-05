@@ -6,6 +6,8 @@ import { addDays, dayHeader, daysLeft, isoWeekday, minutesOfDay, nowSec, startOf
 import { normalize } from './lib/keywords'
 import { placeholderArea, router } from './lib/router'
 import type { AreaTemplate } from './lib/templates'
+import { inferBells } from './lib/schedule'
+import type { BellSlot, ParsedClass } from './lib/schedule'
 
 // MARK: - Локальные настройки (только этого устройства)
 
@@ -20,11 +22,18 @@ export interface Prefs {
   cleanup: 'weekly' | 'daily' | 'never'
   trashDays: number
   mlEnabled: boolean
+  /** Вкладка «Пары»: кто не учится, может её спрятать */
+  showSchedule: boolean
+  /** Карточка «Настроим расписание» убрана */
+  scheduleSetupDismissed: boolean
+  /** Пары — списком по дням или сеткой */
+  scheduleView: 'list' | 'grid'
 }
 
 const defaultPrefs: Prefs = {
   morning: true, morningTime: 8 * 60, classes: true, classLead: 10, deadlines: true, deadlineWhen: 'before',
   deadlineTime: 19 * 60, cleanup: 'weekly', trashDays: 30, mlEnabled: true,
+  showSchedule: true, scheduleSetupDismissed: false, scheduleView: 'grid',
 }
 
 function loadPrefs(): Prefs {
@@ -359,6 +368,7 @@ export function notePreview(n: Note): string {
 // MARK: - Расписание
 
 export const classes = () => data.value.classes.filter((c) => !c.deletedAt)
+export const weekStart = (d: Date) => startOfWeek(d).getTime()
 export const classesOnWeekday = (weekday: number) => classes().filter((c) => c.weekday === weekday).sort((a, b) => a.startMin - b.startMin)
 
 /** Пары на конкретную дату с учётом числителя/знаменателя. */
@@ -389,6 +399,87 @@ export function saveClass(slot: ClassSlot) {
 }
 
 export const deleteClass = (slot: ClassSlot) => saveClass({ ...slot, deletedAt: nowSec() })
+
+// MARK: - Звонки и сетка
+
+const bellsKey = 'schedule.bells'
+
+/** Звонки: заданные мастером или подобранные по уже введённым парам. */
+export function bells(): BellSlot[] {
+  const raw = shared(bellsKey)
+  if (raw) {
+    try {
+      const list = JSON.parse(raw)
+      if (Array.isArray(list) && list.length) return list
+    } catch {}
+  }
+  return inferBells(classes())
+}
+
+export const hasBells = () => !!shared(bellsKey)
+
+/** Новые звонки; пары, которые шли по старым звонкам, переезжают на то же место в новых. */
+export function setBells(next: BellSlot[]) {
+  const old = bells()
+  const now = nowSec()
+  const moved = data.value.classes.map((c) => {
+    if (c.deletedAt) return c
+    const i = old.findIndex((b) => b.start === c.startMin)
+    const target = i >= 0 ? next[i] : undefined
+    return target && (target.start !== c.startMin || target.end !== c.endMin) ? { ...c, startMin: target.start, endMin: target.end, updatedAt: now } : c
+  })
+  commit({ classes: moved })
+  setShared(bellsKey, JSON.stringify(next))
+}
+
+export interface CellEntry {
+  parity: WeekParity
+  title: string
+  teacher: string
+  room: string
+  kind: string
+}
+
+/** Клетка сетки (день + пара): заменяет то, что в ней было, на entries (пустой список — очистить). */
+export function setCell(weekday: number, slot: BellSlot, entries: CellEntry[]) {
+  const now = nowSec()
+  const inCell = classesOnWeekday(weekday).filter((c) => Math.abs(c.startMin - slot.start) <= 15)
+  const kept = new Set<string>()
+  const next = [...data.value.classes]
+  for (const e of entries.filter((x) => x.title.trim())) {
+    const existing = inCell.find((c) => c.parity === e.parity && !kept.has(c.id)) ?? inCell.find((c) => !kept.has(c.id) && !entries.some((x) => x.parity === c.parity && x !== e))
+    const base = existing ?? { id: uuid(), createdAt: now } as ClassSlot
+    const c: ClassSlot = { ...base, weekday, startMin: slot.start, endMin: slot.end, title: e.title.trim(), teacher: e.teacher.trim(), room: e.room.trim(), kind: e.kind.trim(), parity: e.parity, updatedAt: now, deletedAt: null }
+    kept.add(c.id)
+    const i = next.findIndex((x) => x.id === c.id)
+    if (i >= 0) next[i] = c
+    else next.push(c)
+  }
+  commit({ classes: next.map((c) => (inCell.some((x) => x.id === c.id) && !kept.has(c.id) ? { ...c, deletedAt: now, updatedAt: now } : c)) })
+}
+
+/** Копирует пары одного дня на другой (пары того дня заменяются). */
+export function copyDay(from: number, to: number) {
+  const now = nowSec()
+  const copies = classesOnWeekday(from).map((c) => ({ ...c, id: uuid(), weekday: to, createdAt: now, updatedAt: now }))
+  commit({
+    classes: [...data.value.classes.map((c) => (!c.deletedAt && c.weekday === to ? { ...c, deletedAt: now, updatedAt: now } : c)), ...copies],
+  })
+}
+
+/** Пары из вставленного текста или календаря. replace — сначала убрать всё старое расписание. */
+export function addParsedClasses(list: ParsedClass[], replace: boolean) {
+  const now = nowSec()
+  const fresh: ClassSlot[] = list
+    .filter((p) => p.startMin != null)
+    .map((p) => ({
+      id: uuid(), weekday: p.weekday, startMin: p.startMin!, endMin: p.endMin ?? p.startMin! + 90, title: p.title, teacher: p.teacher,
+      room: p.room, kind: p.kind, parity: p.parity, createdAt: now, updatedAt: now,
+    }))
+  const old = replace ? data.value.classes.map((c) => (c.deletedAt ? c : { ...c, deletedAt: now, updatedAt: now })) : data.value.classes
+  commit({ classes: [...old, ...fresh] })
+  return fresh.length
+}
 
 /** Основы слов из названий предметов и фамилий преподавателей: «лаба Вилисова» — это учёба. */
 export function studyHints(): string[] {

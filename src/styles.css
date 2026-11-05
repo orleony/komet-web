@@ -201,3 +201,16 @@ input, textarea, select { font-size: 16px; }
 .cal-day.on { background: var(--raised); }
 .cal-dots { display: flex; gap: 3px; height: 5px; }
 .cal-dots i { width: 5px; height: 5px; border-radius: 50%; display: block; }
+
+/* Сетка расписания */
+.grid-wrap { overflow-x: auto; margin: 0 -6px; padding: 0 6px; }
+.sgrid { display: grid; gap: 3px; min-width: 330px; }
+.sgrid-day { font-size: 12px; font-weight: 700; color: var(--secondary); padding: 4px 0; border-radius: 8px; }
+.sgrid-day.today { color: var(--accent); }
+.sgrid-time { display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 9.5px; color: var(--secondary); font-variant-numeric: tabular-nums; }
+.sgrid-time b { font-size: 13px; color: var(--text); }
+.sgrid-cell { min-height: 54px; border-radius: 10px; background: var(--card); display: flex; flex-direction: column; align-items: stretch; justify-content: center; gap: 2px; padding: 3px; overflow: hidden; }
+.sgrid-cell:not(.filled) { align-items: center; }
+.sgrid-item { font-size: 10px; line-height: 1.15; font-weight: 600; color: var(--class); background: rgba(99, 168, 255, 0.16); border-radius: 6px; padding: 3px 3px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; word-break: break-word; hyphens: auto; text-align: center; flex: 1; display: flex; align-items: center; justify-content: center; }
+.sgrid-item.half { -webkit-line-clamp: 2; }
+.sgrid-item.dim { opacity: 0.35; }

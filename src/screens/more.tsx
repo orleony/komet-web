@@ -198,6 +198,10 @@ function SettingsPage() {
         <Segments value={p.trashDays} onChange={(v) => store.setPref('trashDays', v)} options={[{ value: 7, title: 'Через неделю' }, { value: 30, title: 'Через месяц' }, { value: 0, title: 'Вручную' }]} />
       </div>
 
+      <div class="card section">
+        <Toggle on={p.showSchedule} onChange={(v) => { store.setPref('showSchedule', v); if (v) store.setPref('scheduleSetupDismissed', false) }} title="Вкладка «Пары»" subtitle="Расписание занятий; можно спрятать, если не учишься" />
+      </div>
+
       <div class="kicker" style={{ marginTop: 6 }}>Перенос данных</div>
       <div class="card section">
         <div class="hint" style={{ fontSize: 13 }}>Все данные хранятся только на этом телефоне. Файлом можно сделать копию или перенести всё с Mac.</div>

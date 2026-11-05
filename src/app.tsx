@@ -46,7 +46,7 @@ export function App() {
         {tab === 'more' && <More />}
       </div>
       <nav class="tabbar">
-        {tabs.map(({ id, title, Icon }) => (
+        {tabs.filter((t) => t.id !== 'schedule' || store.prefs.value.showSchedule).map(({ id, title, Icon }) => (
           <button key={id} class={'tab' + (tab === id ? ' on' : '')} onClick={() => setTab(id)}>
             <Icon size={21} strokeWidth={2.2} />
             {title}

@@ -174,7 +174,7 @@ function TodayClasses() {
   if (!slots.length) {
     return store.classes().length
       ? <div class="section-head">Пар сегодня нет</div>
-      : <div class="hint">Добавь пары во вкладке «Пары» — они будут показываться здесь</div>
+      : store.prefs.value.showSchedule ? <div class="hint">Добавь пары во вкладке «Пары» — они будут показываться здесь</div> : null
   }
   return (
     <div class="section">
