@@ -163,7 +163,8 @@ export function ScheduleGrid({ shown, onDayBells }: { shown: WeekParity | null; 
   const [cell, setCell] = useState<{ day: number; slot: number } | null>(null)
   const [copyFrom, setCopyFrom] = useState<number | null>(null)
   const all = store.classes()
-  const days = all.some((c) => c.weekday === 7) ? [1, 2, 3, 4, 5, 6, 7] : [1, 2, 3, 4, 5, 6]
+  const days = store.scheduleDays()
+  const hiddenWeekend = [6, 7].filter((d) => !days.includes(d))
   const today = ((new Date().getDay() + 6) % 7) + 1
   const dayBells = new Map(days.map((d) => [d, store.bellsFor(d)]))
   const custom = new Set(days.filter((d) => store.dayBells(d)))
@@ -229,7 +230,17 @@ export function ScheduleGrid({ shown, onDayBells }: { shown: WeekParity | null; 
           ))}
         </div>
       </div>
-      <div class="hint">Нажми на клетку, чтобы вписать пару. На день недели — чтобы скопировать его.</div>
+      {hiddenWeekend.length > 0 && (
+        <div class="row" style={{ gap: 8 }}>
+          {hiddenWeekend.map((d) => (
+            <button key={d} class="chip" style={{ background: 'var(--card)', color: 'var(--secondary)', height: 32, padding: '0 12px', fontSize: 13 }}
+              onClick={() => store.setWeekendDay(d, true)}>
+              <Plus size={13} /> {weekdayNames[d - 1]}
+            </button>
+          ))}
+        </div>
+      )}
+      <div class="hint">Нажми на клетку, чтобы вписать пару. На день недели — чтобы скопировать его или задать свои звонки.</div>
       {offGrid.length > 0 && <div class="hint">Не по звонкам: {offGrid.map((c) => `${weekdayShort[c.weekday - 1]} ${time(c.startMin)} ${c.title}`).join(', ')} — видно в списке</div>}
 
       {cell && <CellEditor day={cell.day} slot={store.bellsFor(cell.day)[cell.slot]} index={cell.slot} onClose={() => setCell(null)} />}
@@ -335,6 +346,11 @@ function CopyDay({ from, days, onClose, onDayBells }: { from: number; days: numb
         <span class="hint">{own ? `с ${time(own[0].start)}` : 'например, ВУЦ'}</span>
       </button>
       {own && <button class="btn-text" style={{ alignSelf: 'flex-start' }} onClick={() => { store.clearDayBells(from); sheet.close() }}>Вернуть общие звонки</button>}
+      {from >= 6 && count === 0 && (
+        <button class="btn-text" style={{ alignSelf: 'flex-start', color: 'var(--secondary)' }} onClick={() => { store.setWeekendDay(from, false); sheet.close() }}>
+          Убрать {from === 6 ? 'субботу' : 'воскресенье'} из расписания
+        </button>
+      )}
       {count === 0 ? <div class="hint">В этот день пар нет — копировать нечего</div> : (
         <>
           <div class="hint" style={{ fontSize: 13.5 }}><Copy size={13} /> Скопировать {count} {count === 1 ? 'пару' : count < 5 ? 'пары' : 'пар'} на другой день — пары того дня заменятся:</div>

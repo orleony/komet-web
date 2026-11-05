@@ -96,9 +96,8 @@ export function Schedule() {
 
       {view === 'grid' && (store.classes().length > 0 || store.hasBells()) && <ScheduleGrid shown={shown} onDayBells={(d) => { setBellsDay(d); setTool('bells') }} />}
 
-      {view === 'list' && [1, 2, 3, 4, 5, 6, 7].map((day) => {
+      {view === 'list' && store.scheduleDays().map((day) => {
         const slots = store.classesOnWeekday(day).filter((s) => shown == null || s.parity === 'every' || s.parity === shown)
-        if (day === 7 && !slots.length) return null
         const date = addDays(weekStart, day - 1)
         const isToday = isCurrent && isoWeekday(now) === day
         return (
@@ -115,6 +114,17 @@ export function Schedule() {
           </div>
         )
       })}
+
+      {view === 'list' && [6, 7].some((d) => !store.scheduleDays().includes(d)) && (
+        <div class="row" style={{ gap: 8 }}>
+          {[6, 7].filter((d) => !store.scheduleDays().includes(d)).map((d) => (
+            <button key={d} class="chip" style={{ background: 'var(--card)', color: 'var(--secondary)', height: 32, padding: '0 12px', fontSize: 13 }}
+              onClick={() => store.setWeekendDay(d, true)}>
+              <Plus size={13} /> {weekdayNames[d - 1]}
+            </button>
+          ))}
+        </div>
+      )}
 
       {editing && <ClassEditor slot={editing.slot} isNew={editing.isNew} onClose={() => setEditing(null)} />}
       {weekMenu && (

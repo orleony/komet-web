@@ -28,12 +28,14 @@ export interface Prefs {
   scheduleSetupDismissed: boolean
   /** Пары — списком по дням или сеткой */
   scheduleView: 'list' | 'grid'
+  /** Выходные, добавленные в расписание вручную (6 — суббота, 7 — воскресенье), даже если пар пока нет */
+  scheduleWeekend: number[]
 }
 
 const defaultPrefs: Prefs = {
   morning: true, morningTime: 8 * 60, classes: true, classLead: 10, deadlines: true, deadlineWhen: 'before',
   deadlineTime: 19 * 60, cleanup: 'weekly', trashDays: 30, mlEnabled: true,
-  showSchedule: true, scheduleSetupDismissed: false, scheduleView: 'grid',
+  showSchedule: true, scheduleSetupDismissed: false, scheduleView: 'grid', scheduleWeekend: [],
 }
 
 function loadPrefs(): Prefs {
@@ -405,6 +407,20 @@ export function saveClass(slot: ClassSlot) {
 }
 
 export const deleteClass = (slot: ClassSlot) => saveClass({ ...slot, deletedAt: nowSec() })
+
+/** Дни в расписании: будни всегда, суббота и воскресенье — если в них есть пары или их добавили. */
+export function scheduleDays(): number[] {
+  const extra = prefs.value.scheduleWeekend ?? []
+  return [1, 2, 3, 4, 5, ...[6, 7].filter((d) => extra.includes(d) || classesOnWeekday(d).length > 0)]
+}
+
+/** Добавить или убрать выходной из расписания (убрать можно только пустой). */
+export function setWeekendDay(day: number, on: boolean) {
+  const extra = new Set(prefs.value.scheduleWeekend ?? [])
+  if (on) extra.add(day)
+  else extra.delete(day)
+  setPref('scheduleWeekend', [...extra].sort())
+}
 
 // MARK: - Звонки и сетка
 
