@@ -84,7 +84,7 @@ const kinds: [RegExp, string][] = [
   [/(?<![\p{L}])(?:лаб(?:\.|а|ы|ораторн\p{L}*)?(?:\s+работ\p{L}*)?|л\/р|лр)(?![\p{L}])/iu, 'Лабораторная работа'],
   [/(?<![\p{L}])(?:лек(?:\.|ци\p{L}*)?|лк)(?![\p{L}])/iu, 'Лекция'],
   // «Практическая психология» — это предмет, а «практическое занятие» — вид
-  [/(?<![\p{L}])(?:практ(?:\.|ик\p{L}*|ическ\p{L}*\s+занят\p{L}*)?|пр\.?|пз)(?![\p{L}])/iu, 'Практика'],
+  [/(?<![\p{L}])(?:практ(?:\.|ик[аеиоуй]?|ическ\p{L}*\s+занят\p{L}*)?|пр\.?|пз)(?![\p{L}])/iu, 'Практика'],
   [/(?<![\p{L}])(?:сем(?:\.|инар\p{L}*)?)(?![\p{L}])/iu, 'Семинар'],
   [/(?<![\p{L}])(?:консульт\p{L}*)(?![\p{L}])/iu, 'Консультация'],
   [/(?<![\p{L}])(?:экзамен\p{L}*)(?![\p{L}])/iu, 'Экзамен'],
@@ -94,12 +94,12 @@ const kinds: [RegExp, string][] = [
 // Слово «неделя» уходит вместе с признаком: «(нечётная неделя)» не оставляет «( неделя»
 const week = '(?:\\s+недел\\p{L}*)?'
 const parities: [RegExp, WeekParity][] = [
-  [new RegExp(`(?<![\\p{L}])(?:нечетн\\p{L}*|нечётн\\p{L}*|числ(?:\\.|итель\\p{L}*)?|верхн\\p{L}*|ч\\/н|1\\s*нед\\p{L}*\\.?)${week}(?![\\p{L}])|\\((?:ч|числ)\\)`, 'iu'), 'numerator'],
-  [new RegExp(`(?<![\\p{L}])(?:четн\\p{L}*|чётн\\p{L}*|знам(?:\\.|енател\\p{L}*)?|нижн\\p{L}*|з\\/н|2\\s*нед\\p{L}*\\.?)${week}(?![\\p{L}])|\\((?:з|знам)\\)`, 'iu'), 'denominator'],
+  [new RegExp(`(?<![\\p{L}])(?:по\\s+)?(?:нечетн\\p{L}*|нечётн\\p{L}*|числ(?:\\.|итель\\p{L}*)?|верхн\\p{L}*|ч\\/н|1\\s*нед\\p{L}*\\.?)${week}(?![\\p{L}])|\\((?:ч|числ)\\)`, 'iu'), 'numerator'],
+  [new RegExp(`(?<![\\p{L}])(?:по\\s+)?(?:четн\\p{L}*|чётн\\p{L}*|знам(?:\\.|енател\\p{L}*)?|нижн\\p{L}*|з\\/н|2\\s*нед\\p{L}*\\.?)${week}(?![\\p{L}])|\\((?:з|знам)\\)`, 'iu'), 'denominator'],
 ]
 
 const time = '(\\d{1,2})\\s*[:.]\\s*(\\d{2})'
-const timeRange = new RegExp(`${time}\\s*(?:-|–|—|до)\\s*${time}`)
+const timeRange = new RegExp(`(?:(?<![\\p{L}])с\\s*)?${time}\\s*(?:-|–|—|до)\\s*${time}`, 'u')
 const timeStart = new RegExp(`^${time}(?!\\d)`)
 const roman: Record<string, number> = { i: 1, ii: 2, iii: 3, iv: 4, v: 5, vi: 6, vii: 7, viii: 8 }
 
@@ -113,6 +113,13 @@ function parseLine(input: string, day: number): ParsedClass {
     c.startMin = Number(range[1]) * 60 + Number(range[2])
     c.endMin = Number(range[3]) * 60 + Number(range[4])
     line = (line.slice(0, range.index) + ' ' + line.slice(range.index + range[0].length)).trim()
+  }
+  // Подгруппа — в вид занятия: «Лекция · 1 подгр.» (раньше номера пары: «1 подгруппа: Английский»)
+  const sub = /\(?\s*(\d)\s*(?:-?\s*я\s*)?(?:подгр\p{L}*|п\/гр?)\.?\s*\)?|\(?\s*(?:подгр\p{L}*|п\/гр?)\.?\s*(\d)\s*\)?/iu.exec(line)
+  let subgroup = ''
+  if (sub) {
+    subgroup = `${sub[1] ?? sub[2]} подгр.`
+    line = (line.slice(0, sub.index) + ' ' + line.slice(sub.index + sub[0].length)).replace(/^[\s:,.–—-]+/, '').trim()
   }
   // «1 пара», «1)», «1.», «1-я пара», «I пара»
   const num = /^(\d|i{1,3}|iv|vi{0,3})\s*(?:-?\s*(?:я|ая)\s*)?(?:пара|\)|\.(?!\d)|:|–|—|-)?(?:\s+|$)/iu.exec(line)
@@ -148,12 +155,9 @@ function parseLine(input: string, day: number): ParsedClass {
       break
     }
   }
-  // Подгруппа — в вид занятия: «Лекция · 1 подгр.»
-  const sub = /\(?\s*(\d)\s*(?:-?\s*я\s*)?подгр\p{L}*\.?\s*\)?|\(?\s*подгр\p{L}*\.?\s*(\d)\s*\)?/iu.exec(line)
-  if (sub) {
-    c.kind = [c.kind, `${sub[1] ?? sub[2]} подгр.`].filter(Boolean).join(' · ')
-    line = line.replace(sub[0], ' ')
-  }
+  if (subgroup) c.kind = [c.kind, subgroup].filter(Boolean).join(' · ')
+  // Пустые скобки и звёздочки от «[числ]», «*знам*»
+  line = line.replace(/\[\s*\]|\*\s*\*/g, ' ')
   line = line.replace(/(?<![\p{L}])(?:онлайн|дистанционно|дист\.?)(?![\p{L}])/iu, (m) => {
     c.room = c.room || m.toLowerCase()
     return ' '
@@ -161,18 +165,24 @@ function parseLine(input: string, day: number): ParsedClass {
 
   // Аудитория: «ауд. 301», «каб 5-12», «к. 5-12», «а.301», «корп. 2 ауд. 301»
   line = line.replace(/(?<![\p{L}])корп(?:ус)?\.?\s*\d+\p{L}?/iu, ' ')
-  const room = /(?<![\p{L}])(?:ауд(?:итория)?|каб(?:инет)?|к|а)\.?\s*([\p{L}\d][\p{L}\d\-/]*\d[\p{L}\d\-/]*|\d[\p{L}\d\-/]*)/iu.exec(line)
+  // Одиночные «к»/«а» — только перед цифрой: «Подготовка к ОГЭ-2026» — не аудитория
+  const room = /(?<![\p{L}])(?:(?:ауд(?:итория)?|каб(?:инет)?)\.?\s*([\p{L}\d][\p{L}\d\-/]*\d[\p{L}\d\-/]*|\d[\p{L}\d\-/]*)|(?:к|а)\.?\s*(\d[\p{L}\d\-/]*))/iu.exec(line)
   if (room) {
-    c.room = room[1]
+    c.room = room[1] ?? room[2]
     line = line.replace(room[0], ' ')
   }
 
   // Преподаватели — все: «Иванов И.И., Петров П.П.», «Иванов Иван Иванович», «преп. …»
-  line = line.replace(/(?<![\p{L}])(?:преп(?:одаватель)?|доц|проф|ст\.\s*преп)\.?\s*/giu, ' ')
+  line = line.replace(/(?<![\p{L}])(?:ст\.\s*преп|преп(?:одаватель)?|доц(?:ент)?|проф(?:ессор)?|асс(?:истент)?)\.?(?![\p{L}])\s*/giu, ' ')
   const teachers: string[] = []
   const full = /(\p{Lu}\p{Ll}+(?:-\p{Lu}\p{Ll}+)?)\s+(\p{Lu}\p{Ll}+)\s+(\p{Lu}\p{Ll}+(?:вич|вна|ична|ич|ьич|кызы|оглы))(?![\p{L}])/gu
   line = line.replace(full, (_m, a, b, d) => {
     teachers.push(`${a} ${b} ${d}`)
+    return ' '
+  })
+  // «И.И. Иванов» — инициалы впереди
+  line = line.replace(/(?<![\p{L}])(\p{Lu})\.\s?(\p{Lu})\.\s?(\p{Lu}\p{Ll}+(?:-\p{Lu}\p{Ll}+)?)(?![\p{L}])(?!\s*\p{Lu}\.)/gu, (_m, b, d, a) => {
+    teachers.push(`${a} ${b}.${d}.`)
     return ' '
   })
   const initials = /(\p{Lu}\p{Ll}+(?:-\p{Lu}\p{Ll}+)?)\s+(\p{Lu})\.\s?(\p{Lu})\.?/gu
@@ -199,42 +209,83 @@ function parseLine(input: string, day: number): ParsedClass {
   if ((line.match(/\(/g) ?? []).length !== (line.match(/\)/g) ?? []).length) line = line.replace(/[()]/g, ' ')
   c.title = line.replace(/[()[\],;–—-]+\s*$/, '').replace(/^[\s,.;:–—-]+|[\s,.;:–—-]+$/g, '').replace(/\s+/g, ' ').replace(/\(\s*\)/g, '').trim()
   if (!/\p{L}{2,}/u.test(c.title)) c.title = ''
+  // Перерыв и обед — не пары
+  if (/^(?:большой\s+)?(?:перерыв|перемена|обед)$/iu.test(c.title)) c.title = ''
   return c
 }
 
+/** Строка — заголовок дня? Возвращает день и остаток строки (после названия дня и даты). */
+function dayHeader(line: string): { day: number; rest: string } | null {
+  const dated = line.replace(/\d{1,2}[./]\d{1,2}(?:[./]\d{2,4})?(?:\s*г\.?)?/g, ' ').replace(/[\s,.:;()–—-]+/g, ' ').trim()
+  for (const [re, n] of dayNames) {
+    const m = re.exec(line)
+    if (!m) continue
+    if (m.index === 0) {
+      const rest = line.slice(m[0].length).replace(/^[\s.:,–—-]+/, '').replace(/^\d{1,2}[./]\d{1,2}(?:[./]\d{2,4})?(?:\s*г\.?)?\s*/, '').replace(/^[\s.:,–—-]+/, '')
+      return { day: n, rest }
+    }
+    if (re.test(dated) && dated.replace(re, '').trim() === '') return { day: n, rest: '' }
+  }
+  return null
+}
+
+const cleanLine = (raw: string) => raw.replace(/[\t•·|]+/g, ' ').replace(/^[^\p{L}\p{N}(]+/u, '').replace(/\s+/g, ' ').trim()
+
+/** Строка — только признак недели («Числитель», «(знам.)», «Чётная неделя»)? */
+function parityOnly(line: string): WeekParity | null {
+  for (const [re, p] of parities) {
+    if (re.test(line) && !line.replace(re, ' ').replace(/[\s()[\]*:.,;–—-]+/g, '')) return p
+  }
+  return null
+}
+
 /** Разбирает вставленное расписание: заголовки дней (в т. ч. с датой), «1 пара», время, вид занятия, аудитория,
- *  преподаватели, числитель/знаменатель. Понимает и «одно поле на строку», как на многих сайтах вузов. */
-export function parseScheduleText(text: string, bells: BellSlot[] = []): ParsedClass[] {
+ *  преподаватели, числитель/знаменатель (и разделами «Нечётная неделя … Чётная неделя …»).
+ *  Понимает и «одно поле на строку», как на многих сайтах вузов. bells — общие звонки или звонки по дням. */
+export function parseScheduleText(text: string, bells: BellSlot[] | ((day: number) => BellSlot[]) = []): ParsedClass[] {
+  const bellsOf = typeof bells === 'function' ? bells : () => bells
   const out: ParsedClass[] = []
   let day: number | null = null
   /** «1 пара» / «08:30-10:00» на отдельной строке — ждём, что ниже будет предмет */
   let pending: ParsedClass | null = null
   let last: ParsedClass | null = null
+  /** Раздел «Нечётная неделя» — для всех дней ниже; «Понедельник (числитель)» — до следующего дня */
+  let sectionParity: WeekParity | null = null
+  let dayParity: WeekParity | null = null
+  /** Пары, которым признак недели достался от раздела или дня (их уточняет строка «числ.» ниже) */
+  const inherited = new Set<ParsedClass>()
 
-  for (const rawLine of text.split(/\r?\n/)) {
-    // Эмодзи, маркеры списков, табуляция
-    let line = rawLine.replace(/[\t•·|]+/g, ' ').replace(/^[^\p{L}\p{N}(]+/u, '').replace(/\s+/g, ' ').trim()
-    if (!line) continue
+  const lines = text.split(/\r?\n/).map(cleanLine).filter(Boolean)
+  lines.forEach((raw, index) => {
+    let line = raw
+    const nextIsDay = index + 1 < lines.length && dayHeader(lines[index + 1]) != null
 
-    // Заголовок дня: «Понедельник», «ПН, 09.11», «09.11.2026 Понедельник», «Пн 1 Матан»
-    const dated = line.replace(/\d{1,2}[./]\d{1,2}(?:[./]\d{2,4})?(?:\s*г\.?)?/g, ' ').replace(/[\s,.:;()–—-]+/g, ' ').trim()
-    let headerOnly = false
-    for (const [re, n] of dayNames) {
-      const m = re.exec(line)
-      if (!m) continue
-      if (m.index === 0) {
-        day = n
-        line = line.slice(m[0].length).replace(/^[\s.:,–—-]+/, '').replace(/^\d{1,2}[./]\d{1,2}(?:[./]\d{2,4})?\s*/, '')
-        headerOnly = !line
-      } else if (re.test(dated) && dated.replace(re, '').trim() === '') {
-        day = n
-        headerOnly = true
-      } else continue
+    // Заголовок дня: «Понедельник», «ПН, 09.11», «09.11.2026 Понедельник», «Пн 1 Матан», «Понедельник (числитель)»
+    const header = dayHeader(line)
+    if (header) {
+      day = header.day
       pending = null
       last = null
-      break
+      dayParity = null
+      line = header.rest
+      if (!line) return
+      const p = parityOnly(line)
+      if (p) {
+        dayParity = p
+        return
+      }
     }
-    if (headerOnly || !line || day == null) continue
+
+    // «Нечётная неделя» отдельной строкой — раздел расписания, а не поле последней пары
+    const p = parityOnly(line)
+    if (p && !pending && (!last || nextIsDay || (/недел/iu.test(line) && !/[()]/.test(line)))) {
+      sectionParity = p
+      dayParity = null
+      pending = null
+      last = null
+      return
+    }
+    if (day == null) return
 
     const c = parseLine(line, day)
     if (c.title) {
@@ -244,10 +295,21 @@ export function parseScheduleText(text: string, bells: BellSlot[] = []): ParsedC
         c.endMin = pending.endMin
       }
       if (pending?.parity && pending.parity !== 'every' && c.parity === 'every') c.parity = pending.parity
+      if (c.parity === 'every' && (dayParity ?? sectionParity)) {
+        c.parity = (dayParity ?? sectionParity)!
+        inherited.add(c)
+      }
       pending = null
       out.push(c)
       last = c
     } else if (c.number != null || c.startMin != null) {
+      if (last && last.startMin == null && last.number == null && c.number == null && c.startMin != null) {
+        // Время под предметом: «Матан / 08:30-10:00 / ауд. 305» — это время Матана
+        last.startMin = c.startMin
+        last.endMin = c.endMin
+        if (!last.room && c.room) last.room = c.room
+        return
+      }
       // Новая пара начинается: дальше будут её поля
       if (pending && pending.startMin == null && c.startMin != null && c.number == null) {
         pending.startMin = c.startMin
@@ -255,29 +317,36 @@ export function parseScheduleText(text: string, bells: BellSlot[] = []): ParsedC
       } else pending = c
       last = null
     } else if (last) {
-      // «лекция», «ауд. 301», «Иванов И.И.» на своих строках — к последней паре
-      if (!last.kind && c.kind) last.kind = c.kind
+      // «лекция», «ауд. 301», «Иванов И.И.», «2 подгр.» на своих строках — к последней паре
+      if (c.kind) {
+        if (!last.kind) last.kind = c.kind
+        else if (/подгр/.test(c.kind) && !/подгр/.test(last.kind)) last.kind = `${last.kind} · ${c.kind}`
+      }
       if (!last.room && c.room) last.room = c.room
       if (!last.teacher && c.teacher) last.teacher = c.teacher
-      if (last.parity === 'every' && c.parity !== 'every') last.parity = c.parity
+      if ((last.parity === 'every' || inherited.has(last)) && c.parity !== 'every') {
+        last.parity = c.parity
+        inherited.delete(last)
+      }
     } else if (pending) {
       if (c.parity !== 'every') pending.parity = c.parity
     }
-  }
+  })
 
   for (const c of out) {
+    const own = bellsOf(c.weekday)
     // Время по звонкам, если указан только номер (или наоборот)
-    if (c.startMin == null && c.number != null && bells[c.number - 1]) {
-      c.startMin = bells[c.number - 1].start
-      c.endMin = bells[c.number - 1].end
+    if (c.startMin == null && c.number != null && own[c.number - 1]) {
+      c.startMin = own[c.number - 1].start
+      c.endMin = own[c.number - 1].end
     }
     if (c.number == null && c.startMin != null) {
-      const i = slotIndex(bells, c.startMin)
+      const i = slotIndex(own, c.startMin)
       if (i != null) c.number = i + 1
     }
     if (c.startMin != null && c.endMin == null) {
-      const i = slotIndex(bells, c.startMin)
-      c.endMin = i != null ? bells[i].end : c.startMin + 90
+      const i = slotIndex(own, c.startMin)
+      c.endMin = i != null ? own[i].end : c.startMin + 90
     }
   }
   return out
@@ -320,8 +389,10 @@ export function parseICSEvents(text: string): IcsEvent[] {
   const unfolded: string[] = []
   for (const l of lines) {
     if (/^[ \t]/.test(l) && unfolded.length) unfolded[unfolded.length - 1] += l.slice(1)
-    else unfolded.push(l.replace(/\s+$/, ''))
+    else unfolded.push(l)
   }
+  // Пробелы в конце убираем только после склейки: «Математический␠» + «анализ»
+  for (let i = 0; i < unfolded.length; i++) unfolded[i] = unfolded[i].replace(/\s+$/, '')
   const events: IcsEvent[] = []
   let cur: (Partial<IcsEvent> & { duration?: number }) | null = null
   /** Вложенные блоки (VALARM и т. п.) — их поля не наши */
@@ -363,10 +434,14 @@ const icsDays: Record<string, number> = { MO: 1, TU: 2, WE: 3, TH: 4, FR: 5, SA:
 
 /** События календаря → пары недели. parityOf — какая неделя (числитель/знаменатель) у даты.
  *  Каникулы (на весь день), отменённые и разовые события не берём. */
-export function parseICS(text: string, parityOf: (d: Date) => WeekParity, bells: BellSlot[] = []): ParsedClass[] {
+export function parseICS(text: string, parityOf: (d: Date) => WeekParity, bells: BellSlot[] = [], now = new Date()): ParsedClass[] {
   const groups = new Map<string, { e: IcsEvent; weekday: number; parities: Set<WeekParity>; count: number; repeating: boolean }>()
   for (const e of parseICSEvents(text)) {
     if (e.allDay || e.cancelled) continue
+    // Прошлый семестр (повтор уже закончился) и «повтор» из одного раза — не берём
+    const until = /UNTIL=(\d{8}(?:T\d{6}Z?)?)/.exec(e.rrule)
+    if (until && (icsDate(until[1])?.getTime() ?? Infinity) < now.getTime()) continue
+    if (/COUNT=1(?!\d)/.test(e.rrule)) e.rrule = ''
     const interval = /INTERVAL=(\d+)/.exec(e.rrule)
     const weekly = /FREQ=WEEKLY/.test(e.rrule)
     const byDay = /BYDAY=([A-Z,]+)/.exec(e.rrule)?.[1].split(',').map((d) => icsDays[d]).filter(Boolean)

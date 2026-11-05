@@ -5,7 +5,7 @@ import type { ClassSlot, WeekParity } from '../model'
 import { addDays, dayMonth, duration, isoWeekday, minutesOfDay, nowSec, startOfWeek, time, weekdayNames } from '../lib/dates'
 import * as store from '../store'
 import { Screen, Segments, Sheet, useSheet, palette, tint } from '../ui/controls'
-import { BellsWizard, ScheduleGrid, ScheduleImport, ScheduleSetup } from './schedule-tools'
+import { BellsWizard, ScheduleGrid, ScheduleImport, ScheduleSetup, SubjectSuggestions, TeacherField } from './schedule-tools'
 
 const classColor = palette[0]
 
@@ -64,7 +64,8 @@ export function Schedule() {
 
   const add = (day: number) => {
     const last = store.classesOnWeekday(day).slice(-1)[0]
-    const start = last ? last.endMin + 10 : 9 * 60
+    // После поздней последней пары — не позже 22:00, чтобы время было настоящим
+    const start = Math.min(last ? last.endMin + 10 : 9 * 60, 22 * 60)
     const t = nowSec()
     setEditing({
       isNew: true,
@@ -157,7 +158,7 @@ const fromTime = (v: string) => {
 function ClassEditor({ slot, isNew, onClose }: { slot: ClassSlot; isNew: boolean; onClose: () => void }) {
   const sheet = useSheet(onClose)
   const [s, setS] = useState(slot)
-  const set = <K extends keyof ClassSlot>(k: K, v: ClassSlot[K]) => setS({ ...s, [k]: v })
+  const set = <K extends keyof ClassSlot>(k: K, v: ClassSlot[K]) => setS((prev) => ({ ...prev, [k]: v }))
   const save = () => {
     store.saveClass({ ...s, title: s.title.trim(), endMin: Math.max(s.endMin, s.startMin + 5) })
     sheet.close()
@@ -165,6 +166,7 @@ function ClassEditor({ slot, isNew, onClose }: { slot: ClassSlot; isNew: boolean
   return (
     <Sheet closing={sheet.closing} title={isNew ? 'Новая пара' : 'Пара'} onClose={sheet.close} action={<button class="btn primary" disabled={!s.title.trim()} onClick={save}>Готово</button>}>
       <div class="field"><input placeholder="Предмет" value={s.title} onInput={(e) => set('title', e.currentTarget.value)} /></div>
+      <SubjectSuggestions title={s.title} onPick={(c) => setS((prev) => ({ ...prev, title: c.title, teacher: prev.teacher || c.teacher, room: prev.room || c.room, kind: prev.kind || c.kind }))} />
       <div class="row">
         <div class="grow">
           <div class="label">День</div>
@@ -176,14 +178,18 @@ function ClassEditor({ slot, isNew, onClose }: { slot: ClassSlot; isNew: boolean
         </div>
         <div>
           <div class="label">Начало</div>
-          <div class="field"><input type="time" value={toTime(s.startMin)} onInput={(e) => { const m = fromTime(e.currentTarget.value); if (m != null) set('startMin', m) }} /></div>
+          <div class="field"><input type="time" value={toTime(s.startMin)} onInput={(e) => {
+            const m = fromTime(e.currentTarget.value)
+            // Конец едет вместе с началом: пара остаётся той же длины
+            if (m != null) setS((prev) => ({ ...prev, startMin: m, endMin: Math.min(m + Math.max(prev.endMin - prev.startMin, 5), 23 * 60 + 59) }))
+          }} /></div>
         </div>
         <div>
           <div class="label">Конец</div>
           <div class="field"><input type="time" value={toTime(s.endMin)} onInput={(e) => { const m = fromTime(e.currentTarget.value); if (m != null) set('endMin', m) }} /></div>
         </div>
       </div>
-      <div class="field"><input placeholder="Преподаватель (полностью)" value={s.teacher} onInput={(e) => set('teacher', e.currentTarget.value)} /></div>
+      <TeacherField value={s.teacher} subject={s.title} placeholder="Преподаватель (полностью)" onChange={(v) => set('teacher', v)} />
       <div class="row">
         <div class="field grow"><input placeholder="Аудитория" value={s.room} onInput={(e) => set('room', e.currentTarget.value)} /></div>
         <div class="field grow"><input placeholder="Лекция, семинар…" value={s.kind} onInput={(e) => set('kind', e.currentTarget.value)} /></div>

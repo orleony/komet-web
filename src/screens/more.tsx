@@ -141,12 +141,23 @@ function SettingsPage() {
   const fileRef = useRef<HTMLInputElement>(null)
   const result = probe.trim() ? router.route(probe, store.studyHints()) : null
 
-  const exportFile = () => {
-    const blob = new Blob([JSON.stringify(store.exportSnapshot())], { type: 'application/json' })
+  const exportFile = async () => {
+    const name = `komet-${new Date().toISOString().slice(0, 10)}.json`
+    const file = new File([JSON.stringify(store.exportSnapshot())], name, { type: 'application/json' })
+    // На iPhone в приложении с экрана «Домой» скачивание не работает — отдаём через «Поделиться»
+    if (navigator.canShare?.({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file] })
+        return
+      } catch (e) {
+        if ((e as Error).name === 'AbortError') return
+      }
+    }
     const a = document.createElement('a')
-    a.href = URL.createObjectURL(blob)
-    a.download = `komet-${new Date().toISOString().slice(0, 10)}.json`
+    a.href = URL.createObjectURL(file)
+    a.download = name
     a.click()
+    setTimeout(() => URL.revokeObjectURL(a.href), 10_000)
   }
   const importFile = async (file: File) => {
     try {
@@ -205,6 +216,7 @@ function SettingsPage() {
       <div class="kicker" style={{ marginTop: 6 }}>Перенос данных</div>
       <div class="card section">
         <div class="hint" style={{ fontSize: 13 }}>Все данные хранятся только на этом телефоне. Файлом можно сделать копию или перенести всё с Mac.</div>
+        <div class="hint" style={{ fontSize: 13, color: 'var(--warning)' }}>Если удалить Komet с экрана «Домой», задачи, пары и заметки удалятся вместе с ним. Сначала сохрани файл.</div>
         <div class="row wrap">
           <button class="btn secondary" onClick={exportFile}><Download size={16} /> Сохранить в файл</button>
           <button class="btn secondary" onClick={() => fileRef.current?.click()}><Upload size={16} /> Загрузить</button>
@@ -227,16 +239,17 @@ function AreaEditor({ area, onClose }: { area: Area | null; onClose: () => void 
   const [icon, setIcon] = useState(area?.icon ?? 'star.fill')
   const [colorIndex, setColorIndex] = useState(area?.colorIndex ?? 3)
   const [keywords, setKeywords] = useState(area?.keywords ?? '')
-  const [makeFallback, setMakeFallback] = useState(false)
+  const isFallback = !!area && store.fallbackArea().id === area.id
+  const [makeFallback, setMakeFallback] = useState(isFallback)
   const [template, setTemplate] = useState<string | null>(area?.template ?? null)
-  const isFallback = area && store.fallbackArea().id === area.id
 
   const save = () => {
     if (!title.trim()) return
     const saved = area
       ? (store.saveArea({ ...area, title: title.trim(), icon, colorIndex, keywords, template }), area)
       : store.addArea({ title: title.trim(), icon, colorIndex, keywords, template })
-    if (makeFallback) store.setFallback(saved)
+    if (makeFallback && !isFallback) store.setFallback(saved)
+    if (!makeFallback && isFallback) store.setFallback(null)
     sheet.close()
   }
 
@@ -278,8 +291,7 @@ function AreaEditor({ area, onClose }: { area: Area | null; onClose: () => void 
         <div class="label">Ключевые слова — через запятую</div>
         <div class="field"><textarea rows={4} value={keywords} placeholder="тренировка, зал, пробежка" onInput={(e) => setKeywords(e.currentTarget.value)} /></div>
       </div>
-      {!isFallback && <Toggle on={makeFallback} onChange={setMakeFallback} title="Всё неузнанное — сюда" subtitle="Вместо «Входящих»" />}
-      {isFallback && <button class="btn-text" style={{ alignSelf: 'flex-start' }} onClick={() => { store.setFallback(null); sheet.close() }}>Неузнанное — снова во «Входящие»</button>}
+      <Toggle on={makeFallback} onChange={setMakeFallback} title="Всё неузнанное — сюда" subtitle={isFallback && !makeFallback ? 'Неузнанное снова пойдёт во «Входящие»' : 'Вместо «Входящих»'} />
       {area && (
         <div class="row">
           <button class="btn danger" onClick={() => { if (confirm(`Удалить раздел «${area.title}»? Его задачи переедут ${store.fallbackArea().id === area.id || store.fallbackArea().id === 'none' ? 'во «Входящие»' : `в «${store.fallbackArea().title}»`}.`)) { store.deleteArea(area); sheet.close() } }}>Удалить раздел</button>

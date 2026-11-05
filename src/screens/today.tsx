@@ -27,8 +27,8 @@ export function Today() {
     <Screen title="Сегодня" subtitle={todayTitle(now) + (parity ? ' · ' + parityTitle[parity].toLowerCase() : '')}>
       <NowCard />
       <SmartCapture />
-      <WeekParityPrompt />
-      <TodayClasses />
+      {store.prefs.value.showSchedule && <WeekParityPrompt />}
+      {store.prefs.value.showSchedule && <TodayClasses />}
       {!overdue.length && !today.length && !tomorrow.length && (
         <div class="empty">{restCount ? 'На сегодня и завтра ничего не горит' : 'Планов нет — запиши что-нибудь в строку сверху'}</div>
       )}
@@ -94,8 +94,8 @@ function MiniCalendar() {
       <div class="row">
         <div class="toggle-title grow">{monthNames[month.getMonth()]} {month.getFullYear() !== todayStart.getFullYear() ? month.getFullYear() : ''}</div>
         {offset !== 0 && <button class="btn-text" style={{ fontSize: 13 }} onClick={() => { setOffset(0); setSelected(null) }}>Сегодня</button>}
-        <button class="icon-btn" onClick={() => setOffset(offset - 1)} aria-label="Прошлый месяц"><ChevronLeft size={18} /></button>
-        <button class="icon-btn" onClick={() => setOffset(offset + 1)} aria-label="Следующий месяц"><ChevronRight size={18} /></button>
+        <button class="icon-btn" onClick={() => { setOffset(offset - 1); setSelected(null) }} aria-label="Прошлый месяц"><ChevronLeft size={18} /></button>
+        <button class="icon-btn" onClick={() => { setOffset(offset + 1); setSelected(null) }} aria-label="Следующий месяц"><ChevronRight size={18} /></button>
       </div>
       <div class="cal">
         {weekdayShort.map((d) => <div key={d} class="cal-head">{d}</div>)}

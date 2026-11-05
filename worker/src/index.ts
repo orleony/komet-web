@@ -26,6 +26,26 @@ export interface Env {
 interface Reminder { at: number; title: string; body: string; tag: string }
 
 const MAX_REMINDERS = 120
+const MAX_BODY = 64 * 1024
+const MAX_DEVICES = 5000
+
+/** Тело запроса — не больше 64 КБ */
+async function readJSON(request: Request): Promise<any> {
+  const text = await request.text()
+  if (text.length > MAX_BODY) throw new HttpError(413, 'too large')
+  try {
+    return JSON.parse(text || '{}')
+  } catch {
+    throw new HttpError(400, 'bad json')
+  }
+}
+
+class HttpError extends Error {
+  constructor(public status: number, message: string) { super(message) }
+}
+
+/** Храним из подписки только то, что нужно для отправки */
+const slim = (s: Subscription) => JSON.stringify({ endpoint: s.endpoint, keys: { p256dh: s.keys.p256dh, auth: s.keys.auth } })
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
@@ -96,9 +116,14 @@ export default {
 
       // Новое устройство: возвращаем id и секрет, которым оно потом подписывает запросы
       if (request.method === 'POST' && parts[0] === 'devices' && parts.length === 1) {
-        const body: any = await request.json()
+        const body: any = await readJSON(request)
         if (!validSubscription(body.subscription)) return json({ error: 'bad subscription' }, 400)
-        const old = await env.DB.prepare('SELECT id FROM devices WHERE subscription LIKE ?').bind(`%"endpoint":${JSON.stringify(body.subscription.endpoint)}%`).all<{ id: string }>()
+        // Точное совпадение адреса (не LIKE: там «%» и «_» — подстановочные знаки)
+        const old = await env.DB.prepare("SELECT id FROM devices WHERE json_extract(subscription, '$.endpoint') = ?").bind(body.subscription.endpoint).all<{ id: string }>()
+        if (!old.results.length) {
+          const count = await env.DB.prepare('SELECT COUNT(*) AS n FROM devices').first<{ n: number }>()
+          if ((count?.n ?? 0) >= MAX_DEVICES) return json({ error: 'busy' }, 503)
+        }
         if (old.results.length) {
           await env.DB.batch(old.results.flatMap((d) => [
             env.DB.prepare('DELETE FROM reminders WHERE device = ?').bind(d.id),
@@ -108,20 +133,20 @@ export default {
         const id = crypto.randomUUID()
         const token = crypto.randomUUID() + crypto.randomUUID()
         await env.DB.prepare('INSERT INTO devices (id, token_hash, subscription, updated) VALUES (?, ?, ?, ?)')
-          .bind(id, await sha256(token), JSON.stringify(body.subscription), Date.now()).run()
+          .bind(id, await sha256(token), slim(body.subscription), Date.now()).run()
         await replaceReminders(env, id, cleanReminders(body.reminders))
         return json({ id, token })
       }
 
       if (parts[0] === 'devices' && parts[1]) {
         const id = parts[1]
-        const body: any = request.method === 'DELETE' || request.method === 'PUT' || request.method === 'POST' ? await request.json() : {}
+        const body: any = request.method === 'DELETE' || request.method === 'PUT' || request.method === 'POST' ? await readJSON(request) : {}
         if (!(await authorized(env, id, body.token))) return json({ error: 'unknown device' }, 404)
 
         // Новое расписание напоминаний (и, если сменилась, подписка)
         if (request.method === 'PUT' && parts.length === 2) {
           if (body.subscription && validSubscription(body.subscription)) {
-            await env.DB.prepare('UPDATE devices SET subscription = ?, updated = ? WHERE id = ?').bind(JSON.stringify(body.subscription), Date.now(), id).run()
+            await env.DB.prepare('UPDATE devices SET subscription = ?, updated = ? WHERE id = ?').bind(slim(body.subscription), Date.now(), id).run()
           } else {
             await env.DB.prepare('UPDATE devices SET updated = ? WHERE id = ?').bind(Date.now(), id).run()
           }
@@ -147,6 +172,7 @@ export default {
       }
       return json({ error: 'not found' }, 404)
     } catch (e) {
+      if (e instanceof HttpError) return json({ error: e.message }, e.status)
       return json({ error: String(e) }, 500)
     }
   },
@@ -161,6 +187,8 @@ export default {
 
     const subs = new Map<string, Subscription | null>()
     const gone = new Set<string>()
+    // Временный сбой (сеть, 429, 5xx) — вернём напоминание, следующая минута попробует снова
+    const retry: typeof due.results = []
     for (const r of due.results) {
       if (gone.has(r.device) || r.at < now - 15 * 60) continue
       if (!subs.has(r.device)) {
@@ -172,11 +200,16 @@ export default {
       try {
         const result = await sendPush(sub, { title: r.title, body: r.body, tag: r.tag }, vapid(env))
         if (result.gone) gone.add(r.device)
+        else if (result.status === 429 || result.status >= 500) retry.push(r)
         else if (result.status >= 400) console.log('push failed', result.status)
       } catch (e) {
-        // Сеть моргнула — это напоминание пропускаем, остальные шлём
         console.log('push error', String(e))
+        retry.push(r)
       }
+    }
+    const back = retry.filter((r) => !gone.has(r.device))
+    if (back.length) {
+      await env.DB.batch(back.map((r) => env.DB.prepare('INSERT INTO reminders (device, at, title, body, tag) VALUES (?, ?, ?, ?, ?)').bind(r.device, r.at, r.title, r.body, r.tag)))
     }
     if (gone.size) {
       await env.DB.batch([...gone].flatMap((id) => [

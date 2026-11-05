@@ -32,8 +32,37 @@ describe('клетка сетки', () => {
     store.data.value = { ...store.data.value, classes: [cls('A', t(9, 0))] }
     const slot = { start: t(9, 0), end: t(10, 30) }
     const e = { title: 'A', teacher: '', room: '', kind: '' }
-    store.setCell(1, slot, [{ ...e, parity: 'numerator' }, { ...e, parity: 'denominator' }])
+    store.setCell(1, slot, [{ ...e, id: 'A', parity: 'numerator' }, { ...e, parity: 'denominator' }], ['A'])
     expect(store.classes().map((c) => [c.title, c.parity]).sort()).toEqual([['A', 'denominator'], ['A', 'numerator']])
+  })
+})
+
+describe('две подгруппы в одной клетке', () => {
+  it('правка одной пары не удаляет вторую', () => {
+    store.data.value = { ...store.data.value, classes: [cls('A', t(8, 30)), { ...cls('B', t(8, 30)), title: 'Немецкий' }] }
+    const slot = { start: t(8, 30), end: t(10, 0) }
+    store.setCell(1, slot, [{ id: 'A', parity: 'every', title: 'Английский', teacher: '', room: '', kind: '' }], ['A'])
+    expect(store.classes().map((c) => c.title).sort()).toEqual(['Английский', 'Немецкий'])
+  })
+  it('повторная вставка того же расписания не дублирует пары', () => {
+    store.data.value = { ...store.data.value, classes: [] }
+    const p = { weekday: 1, number: 1, startMin: t(8, 30), endMin: t(10, 0), title: 'Матан', teacher: '', room: '', kind: '', parity: 'every' as const }
+    expect(store.addParsedClasses([p], false)).toBe(1)
+    expect(store.addParsedClasses([p, { ...p, kind: '2 подгр.' }], false)).toBe(1)
+    expect(store.classes().length).toBe(2)
+  })
+})
+
+describe('импорт файла', () => {
+  it('кривые записи не ломают приложение, а пустой updatedAt не мешает обновить запись', () => {
+    store.data.value = { tasks: [], notes: [], classes: [], areas: [], settings: [] }
+    store.importSnapshot({ areas: [{ id: 'X' }], tasks: [{ id: 'T', areaID: 'X' }, null, 5, { title: 'нет id' }] })
+    expect(store.data.value.tasks.map((x) => [x.id, x.title, x.updatedAt])).toEqual([['T', '', 0]])
+    expect(store.data.value.areas[0].keywords).toBe('')
+    store.importSnapshot({ tasks: [{ id: 'T', areaID: 'X', title: 'Новое', updatedAt: 999 }] })
+    expect(store.data.value.tasks[0].title).toBe('Новое')
+    expect(() => store.importSnapshot({ hello: 1 })).toThrow()
+    expect(() => store.importSnapshot(null)).toThrow()
   })
 })
 
@@ -57,5 +86,14 @@ describe('свои звонки дня (ВУЦ по вторникам)', () => 
     expect(starts()).toEqual({ M1: t(8, 30), V1: t(10, 15) })
     expect(store.bellsFor(2)[0].start).toBe(t(10, 15))
     expect(store.bellsFor(1)[0].start).toBe(t(8, 30))
+  })
+})
+
+describe('преподаватели запоминаются', () => {
+  it('список без повторов и кто ведёт предмет', () => {
+    store.data.value = { ...store.data.value, classes: [{ ...cls('A', t(9, 0)), title: 'Матан', teacher: 'Иванов И.И., Петров П.П.' }, { ...cls('B', t(11, 0)), title: 'Физика', teacher: 'Иванов И.И.' }] }
+    expect(store.knownTeachers().sort()).toEqual(['Иванов И.И.', 'Петров П.П.'])
+    expect(store.teacherOf('матан')).toBe('Иванов И.И., Петров П.П.')
+    expect(store.teacherOf('История')).toBeNull()
   })
 })

@@ -115,12 +115,16 @@ function NoteEditor({ id, onClose }: { id: string; onClose: () => void }) {
   const [state, setState] = useState<Record<string, boolean>>({})
   const [styleMenu, setStyleMenu] = useState(false)
   const note = store.note(id)
+  /** Что было в редакторе после открытия или последнего сохранения: без правок ничего не пишем */
+  const baseline = useRef<string | null>(null)
 
   const save = () => {
     clearTimeout(timer.current)
     const el = ref.current
-    if (!el) return
-    store.saveNote(id, { html: el.innerHTML, text: htmlToText(el) })
+    if (!el || baseline.current === null || el.innerHTML === baseline.current) return
+    baseline.current = el.innerHTML
+    // RTF с Mac больше не совпадает с текстом — сбрасываем, чтобы Mac показал новую версию
+    store.saveNote(id, { html: el.innerHTML, text: htmlToText(el), rich: null })
   }
   const scheduleSave = () => {
     clearTimeout(timer.current)
@@ -128,12 +132,14 @@ function NoteEditor({ id, onClose }: { id: string; onClose: () => void }) {
   }
 
   useEffect(() => {
-    const el = ref.current!
+    const el = ref.current
+    if (!el) return
     const n = store.note(id)
     el.innerHTML = n?.html ?? (n?.text ? textToHtml(n.text) : '')
+    if (!n?.text && !el.innerHTML) el.innerHTML = '<h1><br></h1>'
+    baseline.current = el.innerHTML
     if (!n?.text) {
       // Новая заметка: первая строка — заголовок, как в Заметках
-      if (!el.innerHTML) el.innerHTML = '<h1><br></h1>'
       el.focus()
       const range = document.createRange()
       range.setStart(el.firstChild!, 0)
@@ -149,6 +155,7 @@ function NoteEditor({ id, onClose }: { id: string; onClose: () => void }) {
     }
     vv?.addEventListener('resize', place)
     vv?.addEventListener('scroll', place)
+    place()
     const onSelection = () => {
       // Жирность заголовка и зачёркивание отмеченного пункта — оформление, а не выбор пользователя
       const node = window.getSelection()?.anchorNode
@@ -244,7 +251,7 @@ function NoteEditor({ id, onClose }: { id: string; onClose: () => void }) {
           else {
             save()
             store.deleteNote(note as Note)
-            showToast('Заметка в корзине', 'Вернуть', () => store.restoreNote(store.noteAny(id)!))
+            showToast('Заметка в корзине', 'Вернуть', () => { const n = store.noteAny(id); if (n) store.restoreNote(n) })
           }
           onClose()
         }}><Trash2 size={18} /></button>

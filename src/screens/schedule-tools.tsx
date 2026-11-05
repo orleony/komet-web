@@ -3,7 +3,7 @@ import { Fragment } from 'preact'
 import { useMemo, useRef, useState } from 'preact/hooks'
 import { CalendarPlus, ClipboardPaste, Copy, GraduationCap, Plus, X } from 'lucide-preact'
 import type { ClassSlot, WeekParity } from '../model'
-import { time, weekdayNames, weekdayShort } from '../lib/dates'
+import { plural, time, weekdayNames, weekdayShort } from '../lib/dates'
 import { computeBells, defaultBellParams, parseICS, parseScheduleText, slotIndex } from '../lib/schedule'
 import type { BellParams, BellSlot, ParsedClass } from '../lib/schedule'
 import * as store from '../store'
@@ -109,7 +109,7 @@ export function BellsWizard({ onClose, onDone, day }: { onClose: () => void; onD
       action={<button class="btn primary" onClick={() => { store.setBells(slots, scope || undefined); if (store.weekParity(new Date()) == null && !store.classes().length) setStep('parity'); else { onDone?.(); sheet.close() } }}>Готово</button>}>
       <div>
         <div class="label">Для каких дней</div>
-        <Segments value={scope} onChange={switchScope} options={[{ value: 0, title: 'Все' }, ...[1, 2, 3, 4, 5, 6].map((d) => ({ value: d, title: weekdayShort[d - 1] }))]} />
+        <Segments value={scope} onChange={switchScope} options={[{ value: 0, title: 'Все' }, ...[...new Set([...store.scheduleDays(), ...(scope ? [scope] : [])])].sort().map((d) => ({ value: d, title: weekdayShort[d - 1] }))]} />
         {scope > 0 && (
           <div class="hint" style={{ marginTop: 6 }}>
             {store.dayBells(scope) ? `Особые звонки: ${weekdayNames[scope - 1].toLowerCase()}. ` : `${weekdayNames[scope - 1]} пока идёт по общим звонкам — задай свои. `}
@@ -172,8 +172,6 @@ export function ScheduleGrid({ shown, onDayBells }: { shown: WeekParity | null; 
   const offGrid = all.filter((c) => slotIndex(dayBells.get(c.weekday) ?? bells, c.startMin) == null)
   const offDays = store.offBellDays()
 
-  if (!rows) return <div class="empty">Сначала задай звонки — кнопка «Звонки» сверху</div>
-
   return (
     <div class="section">
       {offDays.length > 0 && (
@@ -192,7 +190,8 @@ export function ScheduleGrid({ shown, onDayBells }: { shown: WeekParity | null; 
           </div>
         </div>
       )}
-      <div class="grid-wrap">
+      {!rows && <div class="empty">Сначала задай звонки — кнопка «Звонки» сверху</div>}
+      {rows > 0 && <div class="grid-wrap">
         <div class="sgrid" style={{ gridTemplateColumns: `34px repeat(${days.length}, 1fr)` }}>
           <div />
           {days.map((d) => (
@@ -208,18 +207,20 @@ export function ScheduleGrid({ shown, onDayBells }: { shown: WeekParity | null; 
                 const own = dayBells.get(d)!
                 if (!own[i]) return <div key={`${d}-${i}`} />
                 const here = all.filter((c) => c.weekday === d && slotIndex(own, c.startMin) === i)
-                const every = here.find((c) => c.parity === 'every')
-                const num = here.find((c) => c.parity === 'numerator')
-                const den = here.find((c) => c.parity === 'denominator')
+                // Подгруппы — через «/»
+                const titles = (p: WeekParity) => here.filter((c) => c.parity === p).map((c) => c.title).join(' / ') || null
+                const every = titles('every')
+                const num = titles('numerator')
+                const den = titles('denominator')
                 const dim = (p: WeekParity) => shown != null && p !== shown
                 return (
                   <button key={`${d}-${i}`} class={'sgrid-cell' + (here.length ? ' filled' : '')} onClick={() => setCell({ day: d, slot: i })}>
                     {custom.has(d) && <span class="sgrid-own-time">{time(own[i].start)}</span>}
-                    {every && <span class="sgrid-item">{every.title}</span>}
+                    {every && <span class="sgrid-item">{every}</span>}
                     {!every && (num || den) && (
                       <>
-                        <span class={'sgrid-item half' + (dim('numerator') ? ' dim' : '')}>{num?.title ?? '—'}</span>
-                        <span class={'sgrid-item half' + (dim('denominator') ? ' dim' : '')}>{den?.title ?? '—'}</span>
+                        <span class={'sgrid-item half' + (dim('numerator') ? ' dim' : '')}>{num ?? '—'}</span>
+                        <span class={'sgrid-item half' + (dim('denominator') ? ' dim' : '')}>{den ?? '—'}</span>
                       </>
                     )}
                     {!here.length && <Plus size={12} color="var(--line)" />}
@@ -229,7 +230,7 @@ export function ScheduleGrid({ shown, onDayBells }: { shown: WeekParity | null; 
             </Fragment>
           ))}
         </div>
-      </div>
+      </div>}
       {hiddenWeekend.length > 0 && (
         <div class="row" style={{ gap: 8 }}>
           {hiddenWeekend.map((d) => (
@@ -250,6 +251,56 @@ export function ScheduleGrid({ shown, onDayBells }: { shown: WeekParity | null; 
 }
 
 const kinds = ['Лекция', 'Практика', 'Лабораторная работа', 'Семинар']
+
+/** Подсказки предметов в редакторе пары (вкладка «По дням») — как в сетке */
+export function SubjectSuggestions({ title, onPick }: { title: string; onPick: (c: ClassSlot) => void }) {
+  const q = title.trim().toLowerCase()
+  if (!q) return null
+  const byTitle = new Map<string, ClassSlot>()
+  for (const c of [...store.classes()].sort((a, b) => b.updatedAt - a.updatedAt)) if (!byTitle.has(c.title)) byTitle.set(c.title, c)
+  const matches = [...byTitle.values()].filter((c) => c.title.toLowerCase().includes(q) && c.title.toLowerCase() !== q).slice(0, 4)
+  if (!matches.length) return null
+  return (
+    <div class="row wrap" style={{ gap: 6 }}>
+      {matches.map((c) => (
+        <button key={c.id} class="chip" style={{ color: classColor, background: tint(classColor, 0.16) }} onClick={() => onPick(c)}>{c.title}</button>
+      ))}
+    </div>
+  )
+}
+
+/** Поле «Преподаватель» с подсказками: Komet помнит преподов, как и предметы.
+ *  Пустое поле у знакомого предмета — подсказка, кто его ведёт; начал печатать — совпадения по фамилии. */
+export function TeacherField({ value, subject, onChange, placeholder = 'Преподаватель' }: { value: string; subject: string; onChange: (v: string) => void; placeholder?: string }) {
+  const [focused, setFocused] = useState(false)
+  const q = value.trim().toLowerCase().replace(/ё/g, 'е')
+  const usual = !q ? store.teacherOf(subject) : null
+  const all = store.knownTeachers()
+  // Последний преподаватель в списке через запятую — то, что печатают сейчас
+  const current = q.split(/\s*,\s*/).pop() ?? ''
+  const found = current
+    ? all.filter((t) => { const n = t.toLowerCase().replace(/ё/g, 'е'); return n !== current && n.split(/\s+/).some((w) => w.startsWith(current)) || (n.startsWith(current) && n !== current) }).slice(0, 4)
+    : focused && !usual ? all.slice(0, 4) : []
+  const pick = (t: string) => {
+    const parts = value.split(/\s*,\s*/)
+    parts[parts.length - 1] = t
+    onChange(current ? parts.join(', ') : t)
+  }
+  return (
+    <div class="section" style={{ gap: 6 }}>
+      <div class="field"><input placeholder={placeholder} value={value} onInput={(e) => onChange(e.currentTarget.value)}
+        onFocus={() => setFocused(true)} onBlur={() => setTimeout(() => setFocused(false), 150)} /></div>
+      {(usual || found.length > 0) && (
+        <div class="row wrap" style={{ gap: 6 }}>
+          {usual && <button class="chip" style={{ color: classColor, background: tint(classColor, 0.16) }} onClick={() => onChange(usual)}>{usual}</button>}
+          {found.map((t) => (
+            <button key={t} class="chip" style={{ color: 'var(--secondary)', background: 'var(--raised)' }} onClick={() => pick(t)}>{t}</button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
 
 /** Поля одной пары. update — частичная правка поверх свежего состояния: быстрый ввод не затирает соседние поля. */
 function EntryForm({ entry, update, suggestions }: { entry: CellEntry; update: (patch: Partial<CellEntry>) => void; suggestions: ClassSlot[] }) {
@@ -275,36 +326,63 @@ function EntryForm({ entry, update, suggestions }: { entry: CellEntry; update: (
             onClick={() => update({ kind: entry.kind === k ? '' : k })}>{k === 'Лабораторная работа' ? 'Лаба' : k}</button>
         ))}
       </div>
-      <div class="row">
-        <div class="field grow"><input placeholder="Аудитория" value={entry.room} onInput={(e) => update({ room: e.currentTarget.value })} /></div>
-        <div class="field" style={{ flex: 2 }}><input placeholder="Преподаватель" value={entry.teacher} onInput={(e) => update({ teacher: e.currentTarget.value })} /></div>
-      </div>
+      <div class="field"><input placeholder="Аудитория" value={entry.room} onInput={(e) => update({ room: e.currentTarget.value })} /></div>
+      <TeacherField value={entry.teacher} subject={entry.title} onChange={(teacher) => update({ teacher })} />
     </div>
   )
 }
 
 function CellEditor({ day, slot, index, onClose }: { day: number; slot: BellSlot; index: number; onClose: () => void }) {
   const sheet = useSheet(onClose)
-  const inCell = store.classesOnWeekday(day).filter((c) => Math.abs(c.startMin - slot.start) <= 15)
-  const pick = (p: WeekParity): CellEntry => {
-    const c = inCell.find((x) => x.parity === p)
-    return { parity: p, title: c?.title ?? '', teacher: c?.teacher ?? '', room: c?.room ?? '', kind: c?.kind ?? '' }
+  const [inCell] = useState(() => store.classesOnWeekday(day).filter((c) => Math.abs(c.startMin - slot.start) <= 15))
+  const entry = (c: ClassSlot | null, p: WeekParity): CellEntry =>
+    ({ id: c?.id, parity: p, title: c?.title ?? '', teacher: c?.teacher ?? '', room: c?.room ?? '', kind: c?.kind ?? '' })
+  /** Все пары клетки этой недели (две подгруппы — две записи); пустая клетка — одна пустая запись */
+  const load = (p: WeekParity) => {
+    const list = inCell.filter((c) => c.parity === p).map((c) => entry(c, p))
+    return list.length ? list : [entry(null, p)]
   }
   const [split, setSplit] = useState(inCell.some((c) => c.parity !== 'every'))
-  const [every, setEvery] = useState(pick('every').title ? pick('every') : { ...pick('numerator'), parity: 'every' as WeekParity })
-  const [num, setNum] = useState(pick('numerator'))
-  const [den, setDen] = useState(pick('denominator'))
+  const [every, setEvery] = useState(() => load('every'))
+  const [num, setNum] = useState(() => load('numerator'))
+  const [den, setDen] = useState(() => load('denominator'))
   // Подсказки: каждый предмет один раз, самые свежие данные
   const suggestions = useMemo(() => {
     const byTitle = new Map<string, ClassSlot>()
     for (const c of [...store.classes()].sort((a, b) => b.updatedAt - a.updatedAt)) if (!byTitle.has(c.title)) byTitle.set(c.title, c)
     return [...byTitle.values()]
   }, [])
+  const filled = (list: CellEntry[]) => list.some((e) => e.title.trim())
+  const opened = inCell.map((c) => c.id)
 
   const save = () => {
-    store.setCell(day, slot, split ? [num, den] : [every])
+    store.setCell(day, slot, split ? [...num, ...den] : every, opened)
     sheet.close()
   }
+  const as = (list: CellEntry[], p: WeekParity, keepID: boolean) => list.filter((e) => e.title.trim()).map((e) => ({ ...e, parity: p, id: keepID ? e.id : undefined }))
+
+  /** Список пар одной недели: обычно одна, у подгрупп — несколько */
+  const editors = (list: CellEntry[], set: (f: (prev: CellEntry[]) => CellEntry[]) => void, p: WeekParity) => (
+    <>
+      {list.map((e, i) => (
+        <div key={i} class="section" style={{ gap: 6 }}>
+          {list.length > 1 && (
+            <div class="row">
+              <div class="label grow" style={{ margin: 0 }}>{i + 1}-я подгруппа</div>
+              <button class="btn-text" style={{ color: 'var(--secondary)' }} onClick={() => set((prev) => prev.filter((_, j) => j !== i))}>Убрать</button>
+            </div>
+          )}
+          <EntryForm entry={e} update={(x) => set((prev) => prev.map((y, j) => (j === i ? { ...y, ...x } : y)))} suggestions={suggestions} />
+        </div>
+      ))}
+      {filled(list) && (
+        <button class="btn-text" style={{ alignSelf: 'flex-start' }} onClick={() => set((prev) => [...prev, entry(null, p)])}>
+          <Plus size={13} /> Ещё подгруппа
+        </button>
+      )}
+    </>
+  )
+
   return (
     <Sheet closing={sheet.closing} title={`${weekdayNames[day - 1]}, ${index + 1} пара`} onClose={sheet.close}
       action={<button class="btn primary" onClick={save}>Готово</button>}>
@@ -312,24 +390,24 @@ function CellEditor({ day, slot, index, onClose }: { day: number; slot: BellSlot
       <Segments value={split ? 'split' : 'every'} onChange={(v) => {
         const toSplit = v === 'split'
         // Переносим уже введённое, чтобы «Готово» без правок не стёрло пару
-        if (toSplit && every.title && !num.title && !den.title) {
-          setNum({ ...every, parity: 'numerator' })
-          setDen({ ...every, parity: 'denominator' })
+        if (toSplit && filled(every) && !filled(num) && !filled(den)) {
+          setNum(as(every, 'numerator', true))
+          setDen(as(every, 'denominator', false))
         }
-        if (!toSplit && !every.title && (num.title || den.title)) setEvery({ ...(num.title ? num : den), parity: 'every' })
+        if (!toSplit && !filled(every) && (filled(num) || filled(den))) setEvery(as(filled(num) ? num : den, 'every', true))
         setSplit(toSplit)
       }} options={[{ value: 'every', title: 'Каждую неделю' }, { value: 'split', title: 'Числ. / знам.' }]} />
-      {!split && <EntryForm entry={every} update={(x) => setEvery((prev) => ({ ...prev, ...x }))} suggestions={suggestions} />}
+      {!split && editors(every, setEvery, 'every')}
       {split && (
         <>
           <div class="label" style={{ margin: 0 }}>Числитель</div>
-          <EntryForm entry={num} update={(x) => setNum((prev) => ({ ...prev, ...x }))} suggestions={suggestions} />
+          {editors(num, setNum, 'numerator')}
           <div class="label" style={{ margin: 0 }}>Знаменатель</div>
-          <EntryForm entry={den} update={(x) => setDen((prev) => ({ ...prev, ...x }))} suggestions={suggestions} />
+          {editors(den, setDen, 'denominator')}
         </>
       )}
       {inCell.length > 0 && (
-        <div class="row"><button class="btn danger" onClick={() => { store.setCell(day, slot, []); sheet.close() }}><X size={14} /> Очистить клетку</button></div>
+        <div class="row"><button class="btn danger" onClick={() => { store.setCell(day, slot, [], opened); sheet.close() }}><X size={14} /> Очистить клетку</button></div>
       )}
     </Sheet>
   )
@@ -353,7 +431,7 @@ function CopyDay({ from, days, onClose, onDayBells }: { from: number; days: numb
       )}
       {count === 0 ? <div class="hint">В этот день пар нет — копировать нечего</div> : (
         <>
-          <div class="hint" style={{ fontSize: 13.5 }}><Copy size={13} /> Скопировать {count} {count === 1 ? 'пару' : count < 5 ? 'пары' : 'пар'} на другой день — пары того дня заменятся:</div>
+          <div class="hint" style={{ fontSize: 13.5 }}><Copy size={13} /> Скопировать {count} {plural(count, 'пару', 'пары', 'пар')} на другой день — пары того дня заменятся:</div>
           <div class="row wrap">
             {days.filter((d) => d !== from).map((d) => (
               <button key={d} class="btn secondary" onClick={() => { store.copyDay(from, d); showToast(`Скопировано на ${weekdayNames[d - 1].toLowerCase()}`); sheet.close() }}>
@@ -383,11 +461,8 @@ export function ScheduleImport({ mode, onClose }: { mode: 'text' | 'ics'; onClos
   const addable = (parsed ?? []).filter((c, i) => !skip.has(i) && c.startMin != null).length
 
   const parseText = () => {
-    // «3 пара» во вторник — по звонкам вторника, если у него свои
-    setParsed(parseScheduleText(text, bells).map((c) => {
-      const own = store.dayBells(c.weekday)
-      return own && c.number != null && own[c.number - 1] ? { ...c, startMin: own[c.number - 1].start, endMin: own[c.number - 1].end } : c
-    }))
+    // «3 пара» во вторник — по звонкам вторника, если у него свои; явно написанное время не трогаем
+    setParsed(parseScheduleText(text, (d) => store.bellsFor(d)))
     setSkip(new Set())
   }
   const parseFile = async (file: File) => {

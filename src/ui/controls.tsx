@@ -42,10 +42,15 @@ export function Segments<T extends string | number>(props: { value: T; options: 
 /** Закрытие шторки с анимацией: редактор вызывает sheet.close() вместо onClose(). */
 export function useSheet(onClose: () => void) {
   const [closing, setClosing] = useState(false)
+  const timer = useRef<number>()
+  const latest = useRef(onClose)
+  latest.current = onClose
+  // Шторку убрали раньше, чем доиграла анимация, — не дёргаем onClose у уже исчезнувшего экрана
+  useEffect(() => () => clearTimeout(timer.current), [])
   const close = () => {
     if (closing) return
     setClosing(true)
-    window.setTimeout(onClose, 220)
+    timer.current = window.setTimeout(() => latest.current(), 220)
   }
   return { closing, close }
 }

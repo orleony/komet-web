@@ -1,5 +1,5 @@
 {
-  "generated" : 1793869204.880028,
+  "generated" : 1793891150.811522,
   "results" : [
     {
       "clean" : "Сдать лабу по матанализу до пятницы.",
@@ -93,7 +93,7 @@
           "area" : "personal",
           "due" : -999,
           "priority" : 0,
-          "title" : "В 15.30 созвон с Димой",
+          "title" : "Созвон с Димой в 15.30",
           "weak" : false,
           "weekday" : 0
         }
@@ -477,7 +477,7 @@
       ]
     },
     {
-      "clean" : "10 Ноября сессия.",
+      "clean" : "10 ноября сессия.",
       "kind" : "task",
       "phrase" : "10 ноября сессия",
       "tasks" : [
@@ -868,7 +868,7 @@
           "area" : "study",
           "due" : -999,
           "priority" : 0,
-          "title" : "С 10.10 до 11.45 пара",
+          "title" : "Пара с 10.10 до 11.45",
           "weak" : false,
           "weekday" : 0
         }
@@ -1087,6 +1087,224 @@
           "due" : -999,
           "priority" : 0,
           "title" : "Съездить на залив",
+          "weak" : false,
+          "weekday" : 0
+        }
+      ]
+    },
+    {
+      "clean" : "Завтра в 18:00 сдать лабу срочно.",
+      "kind" : "task",
+      "phrase" : "завтра в 18:00 сдать лабу срочно",
+      "tasks" : [
+        {
+          "area" : "study",
+          "due" : 1,
+          "priority" : 2,
+          "title" : "Сдать лабу в 18:00",
+          "weak" : false,
+          "weekday" : 5
+        }
+      ]
+    },
+    {
+      "clean" : "К 18:30 прийти на студию.",
+      "kind" : "task",
+      "phrase" : "к 18:30 прийти на студию",
+      "tasks" : [
+        {
+          "area" : "music",
+          "due" : -999,
+          "priority" : 0,
+          "title" : "Прийти на студию к 18:30",
+          "weak" : false,
+          "weekday" : 0
+        }
+      ]
+    },
+    {
+      "clean" : "В следующий вторник семинар.",
+      "kind" : "task",
+      "phrase" : "в следующий вторник семинар",
+      "tasks" : [
+        {
+          "area" : "study",
+          "due" : 5,
+          "priority" : 0,
+          "title" : "Семинар",
+          "weak" : false,
+          "weekday" : 2
+        }
+      ]
+    },
+    {
+      "clean" : "Купить пару носков.",
+      "kind" : "task",
+      "phrase" : "купить пару носков",
+      "tasks" : [
+        {
+          "area" : "personal",
+          "due" : -999,
+          "priority" : 0,
+          "title" : "Купить пару носков",
+          "weak" : false,
+          "weekday" : 0
+        }
+      ]
+    },
+    {
+      "clean" : "Пропустить пару по матану.",
+      "kind" : "task",
+      "phrase" : "пропустить пару по матану",
+      "tasks" : [
+        {
+          "area" : "study",
+          "due" : -999,
+          "priority" : 0,
+          "title" : "Пропустить пару по матану",
+          "weak" : false,
+          "weekday" : 0
+        }
+      ]
+    },
+    {
+      "clean" : "Купить билеты на концерт.",
+      "kind" : "task",
+      "phrase" : "купить билеты на концерт",
+      "tasks" : [
+        {
+          "area" : "music",
+          "due" : -999,
+          "priority" : 0,
+          "title" : "Купить билеты на концерт",
+          "weak" : false,
+          "weekday" : 0
+        }
+      ]
+    },
+    {
+      "clean" : "Поиграть на гитаре.",
+      "kind" : "task",
+      "phrase" : "поиграть на гитаре",
+      "tasks" : [
+        {
+          "area" : "music",
+          "due" : -999,
+          "priority" : 0,
+          "title" : "Поиграть на гитаре",
+          "weak" : false,
+          "weekday" : 0
+        }
+      ]
+    },
+    {
+      "clean" : "Задача:",
+      "kind" : "task",
+      "phrase" : "задача:",
+      "tasks" : [
+
+      ]
+    },
+    {
+      "clean" : "5км пробежать.",
+      "kind" : "task",
+      "phrase" : "5км пробежать",
+      "tasks" : [
+        {
+          "area" : "personal",
+          "due" : -999,
+          "priority" : 0,
+          "title" : "5км пробежать",
+          "weak" : false,
+          "weekday" : 0
+        }
+      ]
+    },
+    {
+      "clean" : "100 отжиманий.",
+      "kind" : "note",
+      "phrase" : "100 отжиманий",
+      "tasks" : [
+        {
+          "area" : "personal",
+          "due" : -999,
+          "priority" : 0,
+          "title" : "100 отжиманий",
+          "weak" : false,
+          "weekday" : 0
+        }
+      ]
+    },
+    {
+      "clean" : "29 февраля день рождения.",
+      "kind" : "task",
+      "phrase" : "29 февраля день рождения",
+      "tasks" : [
+        {
+          "area" : "personal",
+          "due" : 481,
+          "priority" : 0,
+          "title" : "День рождения",
+          "weak" : false,
+          "weekday" : 2
+        }
+      ]
+    },
+    {
+      "clean" : "Завтра на.",
+      "kind" : "task",
+      "phrase" : "завтра на",
+      "tasks" : [
+        {
+          "area" : "personal",
+          "due" : 1,
+          "priority" : 0,
+          "title" : "Завтра на",
+          "weak" : false,
+          "weekday" : 5
+        }
+      ]
+    },
+    {
+      "clean" : "Не забудь позвонить маме.",
+      "kind" : "task",
+      "phrase" : "не забудь позвонить маме",
+      "tasks" : [
+        {
+          "area" : "personal",
+          "due" : -999,
+          "priority" : 0,
+          "title" : "Позвонить маме",
+          "weak" : false,
+          "weekday" : 0
+        }
+      ]
+    },
+    {
+      "clean" : "Версия 1.10 релиза.",
+      "kind" : "task",
+      "phrase" : "версия 1.10 релиза",
+      "tasks" : [
+        {
+          "area" : "music",
+          "due" : -999,
+          "priority" : 0,
+          "title" : "Версия 1.10 релиза",
+          "weak" : false,
+          "weekday" : 0
+        }
+      ]
+    },
+    {
+      "clean" : "Репетиция с группой.",
+      "kind" : "task",
+      "phrase" : "репетиция с группой",
+      "tasks" : [
+        {
+          "area" : "music",
+          "due" : -999,
+          "priority" : 0,
+          "title" : "Репетиция с группой",
           "weak" : false,
           "weekday" : 0
         }

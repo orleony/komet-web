@@ -1,4 +1,4 @@
-import { useState } from 'preact/hooks'
+import { useEffect, useRef, useState } from 'preact/hooks'
 import { ChevronDown, ChevronRight, Plus } from 'lucide-preact'
 import * as store from '../store'
 import { AreaIcon } from '../ui/icons'
@@ -13,6 +13,8 @@ export function Tasks() {
   const all = store.areas()
   const [areaID, setAreaID] = useState<string | null>(null)
   const [showDone, setShowDone] = useState(false)
+  const [doneLimit, setDoneLimit] = useState(50)
+  const chipsRef = useRef<HTMLDivElement>(null)
   const inboxCount = store.openTasks(store.inbox.id).length
   const showInbox = !all.length || inboxCount > 0 || areaID === store.inbox.id
   const area = all.find((a) => a.id === areaID) ?? (areaID === store.inbox.id || !all.length ? store.inbox : all[0])
@@ -21,12 +23,22 @@ export function Tasks() {
   const open = store.openTasks(area.id)
   const done = store.doneTasks(area.id)
   const keywords = parse(area.keywords)
+  const isFallback = store.fallbackArea().id === area.id
+
+  // Выбранный раздел — в видимой части ряда чипов. Только при смене раздела и только по горизонтали:
+  // иначе любое изменение задач прокручивало бы весь список наверх
+  useEffect(() => {
+    const row = chipsRef.current
+    const el = row?.querySelector<HTMLElement>('[data-on]')
+    if (!row || !el) return
+    if (el.offsetLeft < row.scrollLeft || el.offsetLeft + el.offsetWidth > row.scrollLeft + row.clientWidth) row.scrollTo({ left: el.offsetLeft - 18, behavior: 'smooth' })
+  }, [area.id])
 
   const chip = (id: string, title: string, icon: string, c: string, count: number) => {
     const on = id === area.id
     return (
       <button key={id} class="chip" style={{ flex: 'none', height: 32, padding: '0 12px', fontSize: 13, color: on ? '#fff' : 'var(--secondary)', background: on ? tint(c, 0.85) : 'var(--card)' }}
-        ref={(el) => { if (on && el) el.scrollIntoView({ inline: 'nearest', block: 'nearest' }) }}
+        data-on={on ? '' : undefined}
         onClick={() => { setAreaID(id); setShowDone(false) }}>
         <AreaIcon name={icon} size={12} /> {title} {count > 0 && <span style={{ opacity: 0.7 }}>{count}</span>}
       </button>
@@ -35,7 +47,7 @@ export function Tasks() {
 
   return (
     <div>
-      <div class="row chips-row" style={{ overflowX: 'auto', padding: 'calc(var(--safe-top) + 10px) 18px 2px', gap: 8 }}>
+      <div ref={chipsRef} class="row chips-row" style={{ overflowX: 'auto', padding: 'calc(var(--safe-top) + 10px) 18px 2px', gap: 8 }}>
         {showInbox && chip(store.inbox.id, store.inbox.title, store.inbox.icon, palette[8], inboxCount)}
         {all.map((a) => chip(a.id, a.title, a.icon, areaColor(a), store.openTasks(a.id).length))}
       </div>
@@ -44,7 +56,7 @@ export function Tasks() {
           <div class="grow">
             <h1>{area.title}</h1>
             <div class="subtitle">
-              {isInbox ? 'Всё, что пока не разложено по разделам' : keywords.length ? keywords.slice(0, 5).join(', ') : 'Всё, что не подошло в другие разделы'}
+              {isInbox ? 'Всё, что пока не разложено по разделам' : keywords.length ? keywords.slice(0, 5).join(', ') : isFallback ? 'Всё, что не подошло в другие разделы' : 'Задачи сюда — вручную или по словам раздела'}
             </div>
           </div>
           {!isInbox && <ProgressRing done={done.length} total={done.length + open.length} color={color} />}
@@ -58,7 +70,8 @@ export function Tasks() {
             <button class="section-head" onClick={() => setShowDone(!showDone)}>
               {showDone ? <ChevronDown size={14} /> : <ChevronRight size={14} />} Выполнено <span class="count">{done.length}</span>
             </button>
-            {showDone && done.slice(0, 50).map((t) => <TaskRow key={t.id} task={t} />)}
+            {showDone && done.slice(0, doneLimit).map((t) => <TaskRow key={t.id} task={t} />)}
+            {showDone && done.length > doneLimit && <button class="btn-text" style={{ alignSelf: 'flex-start' }} onClick={() => setDoneLimit(doneLimit + 100)}>Показать ещё {done.length - doneLimit}</button>}
           </div>
         )}
       </div>

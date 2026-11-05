@@ -81,9 +81,9 @@ input, textarea, select { font-size: 16px; }
 .btn.danger { background: rgba(255, 69, 58, 0.16); color: var(--danger); }
 .btn:disabled { opacity: 0.4; }
 .btn-text { color: var(--accent); font-size: 14px; font-weight: 600; padding: 6px 0; }
-.icon-btn { width: 34px; height: 34px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; color: var(--secondary); }
+.icon-btn { width: 40px; height: 40px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; color: var(--secondary); }
 .icon-btn.filled { background: var(--raised); color: #fff; }
-.circle-btn { width: 34px; height: 34px; border-radius: 50%; background: var(--accent); color: #fff; display: inline-flex; align-items: center; justify-content: center; flex: none; }
+.circle-btn { width: 36px; height: 36px; border-radius: 50%; background: var(--accent); color: #fff; display: inline-flex; align-items: center; justify-content: center; flex: none; }
 
 /* Поля */
 .field { background: var(--card); border-radius: 14px; border: 1.5px solid transparent; padding: 0 12px; display: flex; align-items: center; gap: 8px; min-height: 40px; }
@@ -168,7 +168,7 @@ input, textarea, select { font-size: 16px; }
 .link-row { display: flex; align-items: center; gap: 12px; width: 100%; background: var(--card); border-radius: 16px; padding: 12px; text-align: left; }
 .link-row .ic { width: 32px; height: 32px; border-radius: 9px; background: var(--raised); color: var(--accent); display: flex; align-items: center; justify-content: center; }
 .back { display: inline-flex; align-items: center; gap: 4px; color: var(--accent); font-weight: 600; padding: 4px 0; }
-.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(var(--safe-bottom) + 76px); background: var(--raised); padding: 10px 16px; border-radius: 14px; font-size: 13px; font-weight: 600; z-index: 60; animation: fade 0.2s; }
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(var(--safe-bottom) + 76px); background: var(--raised); padding: 10px 16px; border-radius: 14px; font-size: 13px; font-weight: 600; z-index: 120; animation: fade 0.2s; }
 
 /* Плавность. Кто выключил анимации в настройках iPhone — тому без них. */
 @media (prefers-reduced-motion: no-preference) {
@@ -232,3 +232,7 @@ input, textarea, select { font-size: 16px; }
 .sgrid-day.custom { color: var(--class); }
 .sgrid-dot { position: absolute; top: 2px; right: 6px; width: 5px; height: 5px; border-radius: 50%; background: var(--class); }
 .sgrid-own-time { font-size: 9px; color: var(--secondary); text-align: center; font-variant-numeric: tabular-nums; line-height: 1; margin-bottom: 1px; }
+
+/* Кнопка со стрелкой — больше зона нажатия, чем сам кружок */
+.circle-btn { position: relative; }
+.circle-btn::after { content: ''; position: absolute; inset: -5px; }

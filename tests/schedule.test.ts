@@ -88,7 +88,7 @@ describe('календарь .ics', () => {
   const parityOf = (d: Date): WeekParity => (Math.floor(d.getTime() / (7 * 86_400_000)) % 2 === 0 ? 'numerator' : 'denominator')
 
   it('еженедельное — каждую неделю, раз в две — по чётности', () => {
-    const r = parseICS(ics, parityOf, bells)
+    const r = parseICS(ics, parityOf, bells, new Date(2026, 10, 5))
     expect(r[0]).toMatchObject({ weekday: 1, startMin: t(8, 40), endMin: t(10, 15), title: 'Математический анализ', kind: 'Лекция', room: '301', teacher: 'Иванов Иван Иванович', parity: 'every', number: 1 })
     expect(r[1]).toMatchObject({ weekday: 2, title: 'Физика', kind: 'Практика', room: '214' })
     expect(r[1].parity).not.toBe('every')
@@ -136,5 +136,32 @@ describe('находки тестировщика: .ics', () => {
   })
   it('пробелы в конце строк', () => {
     expect(parseICS(['BEGIN:VCALENDAR ', 'BEGIN:VEVENT ', 'DTSTART:20261109T084000 ', 'DTEND:20261109T101500 ', 'SUMMARY:Матан ', 'RRULE:FREQ=WEEKLY ', 'END:VEVENT ', 'END:VCALENDAR'].join('\r\n'), every, bells)).toHaveLength(1)
+  })
+})
+
+describe('вставка: найдено при проверке', () => {
+  const b = computeBells({ ...defaultBellParams, first: 8 * 60 + 30 })
+  const p = (s: string, bells: any = b) => parseScheduleText(s, bells).map((c) => [c.weekday, c.startMin, c.title, c.kind, c.room, c.teacher, c.parity].join('|'))
+  it('разделы «Нечётная / Чётная неделя»', () => {
+    expect(p('Нечётная неделя\nПонедельник\n1 Матан\nЧётная неделя\nПонедельник\n1 Физика')).toEqual(['1|510|Матан||||numerator', '1|510|Физика||||denominator'])
+    expect(p('Понедельник\nНечётная неделя\n1 Матан\nЧётная неделя\n1 Физика')).toEqual(['1|510|Матан||||numerator', '1|510|Физика||||denominator'])
+    expect(p('Понедельник, 09.11.2026 (числитель)\n1 Матан\nВторник\n1 Физика')).toEqual(['1|510|Матан||||numerator', '2|510|Физика||||every'])
+  })
+  it('время строкой ниже предмета', () => {
+    expect(p('Пн\nМатан\n08:30-10:00\nауд. 305\nФизика\n10:10-11:40')).toEqual(['1|510|Матан||305||every', '1|610|Физика||||every'])
+    expect(p('Пн\n📚 Матан\n🕐 08:30-10:00\n🚪 305')).toEqual(['1|510|Матан||305||every'])
+  })
+  it('инициалы впереди, подгруппы, мелочи', () => {
+    expect(p('Пн\n1 Матан И.И. Иванов\n2 Физика Иванов И.И. Петров П.П.')).toEqual(['1|510|Матан|||Иванов И.И.|every', '1|610|Физика|||Иванов И.И., Петров П.П.|every'])
+    expect(p('Пн\n1 подгруппа: Английский язык 305\nАнгл. яз. (1 п/г) 305')).toEqual(['1||Английский язык|1 подгр.|305||every', '1||Англ. яз|1 подгр.|305||every'])
+    expect(p('Пн\nс 8:30 до 10:00 Матан\n2 Физика по чётным\n3 Практикум по программированию\n4 Матан асс. Петров П.П.\n5 Подготовка к ОГЭ-2026\nПерерыв 10:00-10:10'))
+      .toEqual(['1|510|Матан||||every', '1|610|Физика||||denominator', '1|740|Практикум по программированию||||every', '1|840|Матан|||Петров П.П.|every', '1|940|Подготовка к ОГЭ-2026||||every'])
+  })
+  it('у вторника свои звонки: написанное время не меняется, номер — по звонкам вторника', () => {
+    expect(p('Вт\n10:00-11:30 ВУЦ\n2 Строевая', (d: number) => (d === 2 ? [{ start: 600, end: 690 }, { start: 700, end: 790 }] : b))).toEqual(['2|600|ВУЦ||||every', '2|700|Строевая||||every'])
+  })
+  it('.ics: перенос строки после пробела, прошлый семестр', () => {
+    const r = parseICS('BEGIN:VEVENT\r\nDTSTART:20261102T083000\r\nDTEND:20261102T100000\r\nRRULE:FREQ=WEEKLY\r\nSUMMARY:Математический \r\n анализ\r\nEND:VEVENT\r\nBEGIN:VEVENT\r\nDTSTART:20250901T083000\r\nDTEND:20250901T100000\r\nRRULE:FREQ=WEEKLY;UNTIL=20251230T000000Z\r\nSUMMARY:Старое\r\nEND:VEVENT', () => 'numerator', b, new Date(2026, 10, 5))
+    expect(r.map((c) => c.title)).toEqual(['Математический анализ'])
   })
 })

@@ -59,6 +59,7 @@ async function subscription(): Promise<PushSubscription> {
 
 /** Включить напоминания: разрешение, подписка, первое расписание. Вызывать по нажатию кнопки. */
 export async function enablePush(): Promise<void> {
+  await syncing
   // Старое устройство на сервере — убираем, чтобы напоминания не приходили дважды
   const old = loadDevice()
   if (old) await api(`/devices/${old.id}`, 'DELETE', { token: old.token }).catch(() => {})
@@ -75,6 +76,7 @@ export async function enablePush(): Promise<void> {
 }
 
 export async function disablePush(): Promise<void> {
+  await syncing
   const device = loadDevice()
   if (device) await api(`/devices/${device.id}`, 'DELETE', { token: device.token }).catch(() => {})
   saveDevice(null)
@@ -113,6 +115,11 @@ async function doSync() {
     // Сервер забыл устройство (долго не заходили) — подписываемся заново
     if (String(e).includes('404')) {
       const fresh: Device = await api('/devices', 'POST', { subscription: sub.toJSON(), reminders })
+      // Пока ждали ответа, напоминания выключили или включили заново — новое устройство не нужно
+      if (loadDevice()?.id !== device.id) {
+        await api(`/devices/${fresh.id}`, 'DELETE', { token: fresh.token }).catch(() => {})
+        return
+      }
       saveDevice(fresh)
       lastSent = payload
     }

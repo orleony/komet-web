@@ -1,4 +1,5 @@
 import { useState } from 'preact/hooks'
+import { signal } from '@preact/signals'
 import { Check, Circle, CircleCheck, ArrowUp, Plus } from 'lucide-preact'
 import { Priority, priorityTitle } from '../model'
 import type { TaskItem } from '../model'
@@ -9,9 +10,19 @@ import * as store from '../store'
 import { AreaIcon } from './icons'
 import { Segments, Sheet, useSheet, areaColor, describeDue, palette, priorityColor, showToast, tint } from './controls'
 
+/** Какая задача открыта в редакторе. Редактор живёт отдельно от строки: задача сменила срок и уехала
+ *  в другой список (или наступила полночь) — редактор не закрывается и правки не теряются. */
+export const editingTask = signal<string | null>(null)
+
+export function TaskEditorHost() {
+  const id = editingTask.value
+  const task = id ? store.data.value.tasks.find((t) => t.id === id && !t.deletedAt) : null
+  if (!task) return null
+  return <TaskEditor key={id} task={task} onClose={() => { if (editingTask.peek() === id) editingTask.value = null }} />
+}
+
 /** Задача — цветная пилюля раздела, справа срок. Нажатие на пилюлю — изменить. */
 export function TaskRow({ task }: { task: TaskItem }) {
-  const [editing, setEditing] = useState(false)
   const [checking, setChecking] = useState(false)
   const done = task.isDone || checking
   const toggle = () => {
@@ -29,14 +40,13 @@ export function TaskRow({ task }: { task: TaskItem }) {
       <button class={'check' + (done ? ' on' : '')} onClick={toggle} aria-label="Готово">
         {done ? <CircleCheck size={22} color={color} /> : <Circle size={22} />}
       </button>
-      <button class="body" onClick={() => setEditing(true)}>
+      <button class="body" onClick={() => (editingTask.value = task.id)}>
         {task.priority !== Priority.Normal && !task.isDone && (
           <span class="prio" style={{ color: priorityColor[task.priority] }}>{task.priority === Priority.Urgent ? '!!!' : '!!'}</span>
         )}
         <span class={'pill' + (done ? ' done' : '')} style={{ color, background: tint(color, 0.16) }}>{task.title}</span>
       </button>
       {info && <span class="due" style={{ color: info.color }}>{info.text}</span>}
-      {editing && <TaskEditor task={task} onClose={() => setEditing(false)} />}
     </div>
   )
 }
@@ -68,8 +78,10 @@ const fromInput = (v: string) => {
   return new Date(y, m - 1, d)
 }
 
-export function TaskEditor({ task, onClose }: { task: TaskItem; onClose: () => void }) {
+export function TaskEditor({ task: opened, onClose }: { task: TaskItem; onClose: () => void }) {
   const sheet = useSheet(onClose)
+  // Свежая версия задачи (могла поменяться, пока редактор открыт), правки — поверх неё
+  const task = store.data.value.tasks.find((t) => t.id === opened.id) ?? opened
   const [title, setTitle] = useState(task.title)
   const [details, setDetails] = useState(task.details)
   const [areaID, setAreaID] = useState(task.areaID)
@@ -78,7 +90,8 @@ export function TaskEditor({ task, onClose }: { task: TaskItem; onClose: () => v
 
   const save = () => {
     if (!title.trim()) return
-    store.saveTask({ ...task, title: title.trim(), details, areaID, dueDate: toSec(due), priority })
+    // Название — одной строкой (Enter в поле ничего не ломает)
+    store.saveTask({ ...task, title: title.replace(/\s*\n+\s*/g, ' ').trim(), details, areaID, dueDate: toSec(due), priority })
     sheet.close()
   }
 
@@ -149,6 +162,8 @@ export function AddTaskBar({ areaID }: { areaID: string }) {
 }
 
 /** Одна строка на всё: пишешь что угодно, Komet сам решает — задача (с разделом и сроком) или заметка. */
+const touch = typeof matchMedia !== 'undefined' && matchMedia('(pointer: coarse)').matches
+
 export function SmartCapture() {
   const [text, setText] = useState('')
   const [kindOverride, setKindOverride] = useState<CaptureKind | null>(null)
@@ -162,9 +177,13 @@ export function SmartCapture() {
   const commit = () => {
     if (!analysis) return
     if (kind === 'note') {
-      store.addNote(text.trim())
+      // «заметка: …» — подсказка для Komet, в саму заметку её не пишем
+      const body = text.trim().replace(/^(?:заметка|мысль|идея|набросок|строчк\p{L}*|задача|план|дедлайн)\s*:\s*/iu, '')
+      if (!body) return
+      store.addNote(body)
       showToast('Заметка сохранена')
     } else {
+      if (!analysis.tasks.length) return
       for (const t of analysis.tasks) {
         store.addTask(t.title, areaOverride ?? t.area.id, t.dueDate, t.priority)
       }
@@ -183,9 +202,10 @@ export function SmartCapture() {
           placeholder="Запиши что угодно — сам разложу"
           value={text}
           onInput={(e) => setText(e.currentTarget.value)}
-          enterkeyhint="send"
+          enterkeyhint={touch ? 'enter' : 'send'}
           onKeyDown={(e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
+            // На телефоне Enter — новая строка (несколько задач столбиком), сохранить — кнопкой со стрелкой
+            if (e.key === 'Enter' && !e.shiftKey && !touch) {
               e.preventDefault()
               commit()
             }

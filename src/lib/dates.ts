@@ -17,8 +17,10 @@ export function addDays(d: Date, n: number): Date {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate() + n, d.getHours(), d.getMinutes(), d.getSeconds())
 }
 
+/** «Через месяц» 31 января — 28 (29) февраля, а не 3 марта */
 export function addMonths(d: Date, n: number): Date {
-  return new Date(d.getFullYear(), d.getMonth() + n, d.getDate())
+  const last = new Date(d.getFullYear(), d.getMonth() + n + 1, 0).getDate()
+  return new Date(d.getFullYear(), d.getMonth() + n, Math.min(d.getDate(), last))
 }
 
 export function dayOffset(n: number, now = new Date()): Date {
@@ -79,8 +81,9 @@ export function dayMonth(d: Date): string {
   return `${d.getDate()} ${monthsGen[d.getMonth()]}`
 }
 
-export function shortDate(d: Date): string {
-  return `${d.getDate()} ${monthsShort[d.getMonth()]}`
+/** «12 нояб.»; другой год — с годом: «12 нояб. 2027» */
+export function shortDate(d: Date, now = new Date()): string {
+  return `${d.getDate()} ${monthsShort[d.getMonth()]}` + (d.getFullYear() !== now.getFullYear() ? ` ${d.getFullYear()}` : '')
 }
 
 /** «31 октября — суббота» */

@@ -18,6 +18,10 @@ export interface Route {
 /** Из какого готового раздела этот раздел (с Mac приходят study/music/personal без пометки). */
 export const templateOf = (a: Area) => templateByID(a.template ?? a.id)
 
+/** Слова, которые ничего не говорят о разделе: «сходить», «утром», «надо» — модель на них не смотрит,
+ *  иначе «сходить в банк» похоже на «сходить в зал». */
+const stopStems = new Set(['сход', 'схож', 'утром', 'утр', 'вечер', 'вечером', 'днем', 'над', 'нужн', 'купит', 'сдел', 'завтр', 'сегод', 'потом', 'еще', 'очен', 'мне', 'для', 'про', 'что', 'это'])
+
 /** Грубое приведение к основе: «тренировку» и «тренировка» → «тренировк». */
 export function stem(text: string): string {
   const endings = new Set('аеиоуыэюяйь')
@@ -30,6 +34,8 @@ export function stem(text: string): string {
       while (s.length > 3 && endings.has(s[s.length - 1])) s.pop()
       return s.join('')
     })
+    // Предлоги («по», «на», «в») встречаются везде — по ним раздел не угадать
+    .filter((w) => [...w].length >= 3 && !stopStems.has(w))
     .join(' ')
 }
 
@@ -103,7 +109,7 @@ export class AreaRouter {
     let best: { area: Area; score: number } | null = null
     const tied: Area[] = []
     for (const area of this.areas) {
-      const s = score(text, parse(area.keywords)) + (area.id === 'study' ? hinted * 2 : 0)
+      const s = score(text, parse(area.keywords)) + (templateOf(area)?.id === 'study' ? hinted * 2 : 0)
       if (s > (best?.score ?? 0)) {
         best = { area, score: s }
         tied.length = 0
@@ -124,12 +130,20 @@ export class AreaRouter {
     const missing = this.missingTemplates()
     let suggest: AreaTemplate | undefined
     let suggestScore = 0
+    const suggestTied: AreaTemplate[] = []
     for (const t of missing) {
       const s = score(text, parse(t.keywords))
       if (s > suggestScore) {
         suggest = t
         suggestScore = s
-      }
+        suggestTied.length = 0
+        suggestTied.push(t)
+      } else if (s > 0 && s === suggestScore) suggestTied.push(t)
+    }
+    // Ничья («купить билеты на поезд» — путешествия или учёба) — решает модель
+    if (suggestTied.length > 1 && this.model) {
+      const p = this.model.probabilities(stem(text))
+      suggest = suggestTied.reduce((a, b) => ((p.get('tpl:' + b.id) ?? 0) > (p.get('tpl:' + a.id) ?? 0) ? b : a))
     }
 
     if (this.mlEnabled && this.model) {

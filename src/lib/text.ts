@@ -2,7 +2,7 @@
 import { Priority } from '../model'
 import type { Area } from '../model'
 import type { AreaTemplate } from './templates'
-import { addDays, addMonths, dayOffset, endOfWeek, isoWeekday, nextWeekday, startOfToday } from './dates'
+import { addDays, addMonths, dayOffset, endOfWeek, isoWeekday, nextWeekday, startOfToday, startOfWeek } from './dates'
 import { normalize } from './keywords'
 import { router } from './router'
 
@@ -87,7 +87,7 @@ const separators =
   '|\\s+(?:потом|затем)\\s+(?=\\p{L})'
 
 const leadingWords =
-  '^(?:(?:и|а|ну|так|ещё|еще|потом|затем|также|плюс|мне|я|надо бы|надо|нужно бы|нужно|не забыть|хочу|хотелось бы|обязательно|должен|должна)(?![\\p{L}])[,\\s]*)+'
+  '^(?:(?:и|а|ну|так|ещё|еще|потом|затем|также|плюс|мне|я|надо бы|надо|нужно бы|нужно|не забыть|не забудь(?:те)?|хочу|хотелось бы|обязательно|должен|должна)(?![\\p{L}])[,\\s]*)+'
 
 const trimChars = (s: string, chars: string) => {
   let a = 0
@@ -115,7 +115,9 @@ export function tasksFrom(text: string, hints: string[] = [], now = new Date()):
     title = replace(title, ',{2,}', ',')
     title = replace(title, '(?:\\s*,){2,}', ',').trim()
     title = trimChars(replace(title, leadingWords, ''), ' ,.:;-—!')
-    if ([...title].length < 2) {
+    title = moveTime(title)
+    // Остался один предлог («завтра на») — это не задача
+    if ([...title].length < 2 || test(title, '^' + leftovers + '$')) {
       if (due) {
         if (!result.length) {
           carriedDue = due
@@ -142,6 +144,15 @@ export function tasksFrom(text: string, hints: string[] = [], now = new Date()):
     carriedPriority = Priority.Normal
   }
   return result
+}
+
+const leftovers = '(?:на|до|к|ко|в|во|с|со|и|а|по|за|о|об|или)'
+
+/** «В 18:00 сдать лабу» → «сдать лабу в 18:00»: время остаётся, но название начинается с дела. */
+export function moveTime(title: string): string {
+  const m = groups(title, '^((?:в|во|к|ко|до|с|со)\\s+\\d{1,2}[:.]\\d{2}(?:\\s*(?:-|–|—|до)\\s*\\d{1,2}[:.]\\d{2})?)[,\\s]+(\\p{L}.*)$')
+  if (!m) return title
+  return `${m.values[1]} ${(m.values[0] ?? '').toLowerCase()}`
 }
 
 /** «!!» / «важно» → важная, «!!!» / «срочно» → срочная. «Срочно» остаётся — это ещё и срок «сегодня». */
@@ -208,7 +219,7 @@ function findDue(box: { title: string }, inclusive: boolean, weak: { value: bool
   const units = '(?!\\s*(?:литр\\p{L}*|л|кг|г|гр|км|м|мл|ч|час\\p{L}*|мин\\p{L}*|руб\\p{L}*|р|раз\\p{L}*|шт|%)(?![\\p{L}]))'
   const explicitDay = test(box.title, word('(?:сегодня|завтра|послезавтра)'))
   const range = '(?!\\s*(?:-|–|—|до)\\s*\\d{1,2}[.:]\\d{2})'
-  m = explicitDay ? null : groups(box.title, '(?:(до|к|на)\\s+)?(?<![\\p{L}\\d.])(?<!в\\s)(?<!во\\s)(?<!с\\s)(?<!со\\s)(\\d{1,2})\\.(\\d{2})(?:\\.(\\d{2}|\\d{4}))?(?![\\d.])' + units + range)
+  m = explicitDay ? null : groups(box.title, '(?:(до|к|на)\\s+)?(?<![\\p{L}\\d.])(?<!верси[яиюей]\\s)(?<!в\\s)(?<!во\\s)(?<!с\\s)(?<!со\\s)(\\d{1,2})\\.(\\d{2})(?:\\.(\\d{2}|\\d{4}))?(?![\\d.])' + units + range)
   if (m) {
     const date = makeDate(Number(m.values[1]), Number(m.values[2]), m.values[3] ? Number(m.values[3]) : null, today)
     if (date) {
@@ -251,7 +262,13 @@ function findDue(box: { title: string }, inclusive: boolean, weak: { value: bool
   }
 
   for (const [iso, gen, dat, acc] of weekdayForms) {
-    let w = groups(box.title, word('до\\s+' + gen))
+    // «в следующий вторник» — вторник следующей недели
+    let w = groups(box.title, word('(?:в|во|на|к|ко|до)?\\s*следующ(?:ий|ую|ее|ему|ей|его)\\s+(?:' + acc + '|' + dat + '|' + gen + ')'))
+    if (w) {
+      cut(w)
+      return addDays(startOfWeek(now), 7 + iso - 1)
+    }
+    w = groups(box.title, word('до\\s+' + gen))
     if (w) {
       cut(w)
       return deadline(nextWeekday(iso, now), true)
@@ -274,10 +291,17 @@ function makeDate(day: number, month: number, year: number | null, today: Date):
   if (!(month >= 1 && month <= 12) || !(day >= 1 && day <= 31)) return null
   let y = year ?? today.getFullYear()
   if (y < 100) y += 2000
-  const date = new Date(y, month - 1, day)
-  if (date.getDate() !== day || date.getMonth() !== month - 1) return null
-  if (year == null && date < today) return new Date(y + 1, month - 1, day)
-  return date
+  const valid = (yy: number) => {
+    const d = new Date(yy, month - 1, day)
+    return d.getDate() === day && d.getMonth() === month - 1 ? d : null
+  }
+  if (year != null) return valid(y)
+  // Без года — ближайшая такая дата впереди (29 февраля — в ближайший високосный)
+  for (let yy = y; yy <= y + 8; yy++) {
+    const d = valid(yy)
+    if (d && d >= today) return d
+  }
+  return null
 }
 
 // MARK: - Задача или заметка
@@ -327,6 +351,8 @@ export function analyze(raw: string, studyHints: string[] = [], now = new Date()
       break
     }
   }
+  // Одна подсказка без текста («задача:») — ещё нечего сохранять
+  if (!text.trim()) return { kind: forced ?? 'note', tasks: [] }
 
   let tasks = tasksFrom(text, studyHints, now)
   if (!tasks.length) {
@@ -335,7 +361,7 @@ export function analyze(raw: string, studyHints: string[] = [], now = new Date()
     const weak = { value: false }
     const due = extractDue(box, weak, now)
     let title = trimChars(box.title, ' ,.:;-—')
-    if (!title) title = text
+    if (!title || test(title, '^' + leftovers + '$')) title = text
     const routed = router.route(title, studyHints)
     tasks = [{ title: capitalizeFirst(title), area: routed.area, dueDate: due, priority, areaMatched: routed.source.kind !== 'fallback', dueIsWeak: weak.value, suggest: routed.suggest }]
   }
@@ -370,6 +396,8 @@ function capitalizeSentences(s: string): string {
   let afterPunctuation = false
   for (const ch of s) {
     if (afterPunctuation && !isSpace(ch) && !'.!?'.includes(ch)) capitalizeNext = false
+    // «5км пробежать», «100 отжиманий» — после числа заглавная не нужна
+    if (/\d/.test(ch)) capitalizeNext = false
     if (capitalizeNext && isLetter(ch)) {
       out += ch.toUpperCase()
       capitalizeNext = false

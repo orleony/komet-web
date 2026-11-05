@@ -3,10 +3,11 @@ import { effect, signal } from '@preact/signals'
 import { Priority, uuid } from './model'
 import type { Area, ClassSlot, Note, Snapshot, SyncSetting, TaskItem, WeekParity } from './model'
 import { addDays, dayHeader, daysLeft, isoWeekday, minutesOfDay, nowSec, startOfDay, startOfToday, startOfWeek, toDate, toSec } from './lib/dates'
-import { normalize } from './lib/keywords'
+import { defaultMusic, defaultStudy, normalize, parse, previousMusic, previousStudy } from './lib/keywords'
 import { placeholderArea, router } from './lib/router'
 import type { AreaTemplate } from './lib/templates'
 import { inferBells, slotIndex } from './lib/schedule'
+import { cleanSnapshot, tieKey } from './lib/sanitize'
 import type { BellSlot, ParsedClass } from './lib/schedule'
 
 // MARK: - Локальные настройки (только этого устройства)
@@ -63,37 +64,93 @@ export const loaded = signal(false)
 /** Тикает раз в 30 секунд — для «идёт · ещё 25 мин» */
 export const clock = signal(new Date())
 
+let dbPromise: Promise<IDBDatabase> | null = null
 function openDB(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
+  dbPromise ??= new Promise<IDBDatabase>((resolve, reject) => {
     const req = indexedDB.open('komet', 1)
     req.onupgradeneeded = () => req.result.createObjectStore('kv')
-    req.onsuccess = () => resolve(req.result)
-    req.onerror = () => reject(req.error)
+    req.onsuccess = () => {
+      const db = req.result
+      db.onclose = () => (dbPromise = null)
+      db.onversionchange = () => { db.close(); dbPromise = null }
+      resolve(db)
+    }
+    req.onerror = () => { dbPromise = null; reject(req.error) }
   })
+  return dbPromise
 }
 
 async function readSnapshot(): Promise<Snapshot | null> {
   const db = await openDB()
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     const req = db.transaction('kv').objectStore('kv').get('snapshot')
-    req.onsuccess = () => resolve((req.result as Snapshot) ?? null)
-    req.onerror = () => resolve(null)
+    req.onsuccess = () => resolve(req.result == null ? null : cleanSnapshot(req.result) ?? emptySnapshot)
+    req.onerror = () => reject(req.error)
   })
 }
 
 async function writeSnapshot(s: Snapshot) {
   const db = await openDB()
-  await new Promise<void>((resolve) => {
+  await new Promise<void>((resolve, reject) => {
     const tx = db.transaction('kv', 'readwrite')
     tx.objectStore('kv').put(s, 'snapshot')
     tx.oncomplete = () => resolve()
-    tx.onerror = () => resolve()
+    tx.onerror = () => reject(tx.error)
+    tx.onabort = () => reject(tx.error)
   })
 }
 
+/** Слияние двух снимков: по каждой записи побеждает более свежая правка. */
+export function mergeSnapshots(local: Snapshot, incoming: Snapshot): { snapshot: Snapshot; count: number } {
+  let count = 0
+  const merge = <T extends { id: string; updatedAt: number }>(mine: T[], other: T[]): T[] => {
+    const byID = new Map(mine.map((x) => [x.id, x]))
+    for (const r of other) {
+      const m = byID.get(r.id)
+      if (!m || r.updatedAt > m.updatedAt || (r.updatedAt === m.updatedAt && tieKey(r) > tieKey(m))) {
+        if (m && tieKey(r) === tieKey(m)) continue
+        byID.set(r.id, r)
+        count++
+      }
+    }
+    return [...byID.values()]
+  }
+  return {
+    snapshot: {
+      tasks: merge(local.tasks, incoming.tasks),
+      notes: merge(local.notes, incoming.notes),
+      classes: merge(local.classes, incoming.classes),
+      areas: merge(local.areas, incoming.areas),
+      settings: merge(local.settings, incoming.settings),
+    },
+    count,
+  }
+}
+
+/** Не удалось прочитать память — ничего не пишем, чтобы не затереть данные пустыми */
+let readFailed = false
+const channel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('komet') : null
+
+/** Подтягиваем то, что сохранила другая вкладка (или окно) */
+async function pullFromDisk() {
+  if (readFailed) return
+  try {
+    const saved = await readSnapshot()
+    if (!saved) return
+    const { snapshot, count } = mergeSnapshots(data.value, saved)
+    if (count) commit(snapshot, false)
+  } catch {}
+}
+
 export async function load() {
-  const saved = await readSnapshot()
-  data.value = saved ? { ...emptySnapshot, ...saved } : emptySnapshot
+  let saved: Snapshot | null = null
+  try {
+    saved = await readSnapshot()
+  } catch {
+    readFailed = true
+  }
+  data.value = saved ?? emptySnapshot
+  upgradeDefaultKeywords()
   // Разделов по умолчанию нет: всё попадает во «Входящие», а Komet подсказывает, какой раздел создать
   syncRouter()
   cleanUp()
@@ -105,17 +162,70 @@ export async function load() {
     clock.value = new Date()
     if (prev.toDateString() !== clock.value.toDateString()) cleanUp()
   }, 30_000)
+
   let pending: number | undefined
-  effect(() => {
-    const snapshot = data.value
-    if (!loaded.peek()) return
+  let dirty = false
+  const flush = async () => {
     clearTimeout(pending)
-    pending = window.setTimeout(() => writeSnapshot(snapshot), 250)
+    if (!dirty || readFailed) return
+    dirty = false
+    try {
+      // Сначала берём то, что успела сохранить другая вкладка, — иначе затрём её правки
+      const disk = await readSnapshot()
+      if (disk) {
+        const { snapshot, count } = mergeSnapshots(data.value, disk)
+        if (count) commit(snapshot, false)
+      }
+      await writeSnapshot(data.value)
+      channel?.postMessage('saved')
+    } catch {
+      dirty = true
+    }
+  }
+  effect(() => {
+    data.value
+    if (!loaded.peek() || fromDisk) return
+    dirty = true
+    clearTimeout(pending)
+    pending = window.setTimeout(flush, 250)
   })
+  // Закрыли приложение сразу после правки — сохраняем не дожидаясь таймера
+  const hide = () => { if (document.visibilityState === 'hidden') flush() }
+  document.addEventListener('visibilitychange', hide)
+  window.addEventListener('pagehide', () => flush())
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') pullFromDisk() })
+  channel?.addEventListener('message', () => pullFromDisk())
 }
 
-function commit(next: Partial<Snapshot>) {
-  data.value = { ...data.value, ...next }
+let fromDisk = false
+
+/** Стандартные слова Учёбы и Музыки, которые пользователь не трогал, — на новые (как на Mac). */
+function upgradeDefaultKeywords() {
+  const same = (a: string, b: string) => parse(a).join(',') === parse(b).join(',')
+  const pairs: [string, string, string][] = [
+    ['study', previousStudy, defaultStudy],
+    ['music', previousMusic, defaultMusic],
+    ['music', previousMusic.replace('видео, ', ''), defaultMusic.replace('видео, ', '')],
+  ]
+  const now = nowSec()
+  let changed = false
+  const next = data.value.areas.map((a) => {
+    const t = (a.template ?? a.id)
+    const pair = pairs.find(([id, old]) => id === t && same(a.keywords, old))
+    if (!pair || a.deletedAt) return a
+    changed = true
+    return { ...a, keywords: pair[2], updatedAt: now }
+  })
+  if (changed) data.value = { ...data.value, areas: next }
+}
+
+function commit(next: Partial<Snapshot>, save = true) {
+  fromDisk = !save
+  try {
+    data.value = { ...data.value, ...next }
+  } finally {
+    fromDisk = false
+  }
   syncRouter()
 }
 
@@ -124,7 +234,11 @@ function syncRouter() {
   router.areas = areas()
   router.fallbackID = shared(fallbackKey) ?? 'none'
   router.mlEnabled = prefs.value.mlEnabled
-  router.retrain(d.tasks.filter((t) => !t.deletedAt))
+  try {
+    router.retrain(d.tasks.filter((t) => !t.deletedAt))
+  } catch (e) {
+    console.error('retrain', e)
+  }
 }
 
 const upsert = <T extends { id: string }>(list: T[], item: T) => {
@@ -514,6 +628,8 @@ export function fitDayBells(weekday: number) {
 }
 
 export interface CellEntry {
+  /** Пара, из которой взята запись (новая — без id) */
+  id?: string
   parity: WeekParity
   title: string
   teacher: string
@@ -521,28 +637,35 @@ export interface CellEntry {
   kind: string
 }
 
-/** Клетка сетки (день + пара): заменяет то, что в ней было, на entries (пустой список — очистить). */
-export function setCell(weekday: number, slot: BellSlot, entries: CellEntry[]) {
+/** Пары клетки после правки. Удаляются только пары из opened (те, что были в редакторе) и не оставшиеся в entries:
+ *  чужие пары в той же клетке не трогаем. */
+export function setCell(weekday: number, slot: BellSlot, entries: CellEntry[], opened: string[]) {
   const now = nowSec()
-  const inCell = classesOnWeekday(weekday).filter((c) => Math.abs(c.startMin - slot.start) <= 15)
   const kept = new Set<string>()
   const next = [...data.value.classes]
   for (const e of entries.filter((x) => x.title.trim())) {
-    const existing = inCell.find((c) => c.parity === e.parity && !kept.has(c.id)) ?? inCell.find((c) => !kept.has(c.id) && !entries.some((x) => x.parity === c.parity && x !== e))
-    const base = existing ?? { id: uuid(), createdAt: now } as ClassSlot
+    const existing = e.id && !kept.has(e.id) ? next.find((c) => c.id === e.id && !c.deletedAt) : undefined
+    const base = existing ?? ({ id: uuid(), createdAt: now } as ClassSlot)
     const c: ClassSlot = { ...base, weekday, startMin: slot.start, endMin: slot.end, title: e.title.trim(), teacher: e.teacher.trim(), room: e.room.trim(), kind: e.kind.trim(), parity: e.parity, updatedAt: now, deletedAt: null }
     kept.add(c.id)
     const i = next.findIndex((x) => x.id === c.id)
     if (i >= 0) next[i] = c
     else next.push(c)
   }
-  commit({ classes: next.map((c) => (inCell.some((x) => x.id === c.id) && !kept.has(c.id) ? { ...c, deletedAt: now, updatedAt: now } : c)) })
+  const remove = new Set(opened.filter((id) => !kept.has(id)))
+  commit({ classes: next.map((c) => (remove.has(c.id) && !c.deletedAt ? { ...c, deletedAt: now, updatedAt: now } : c)) })
 }
 
-/** Копирует пары одного дня на другой (пары того дня заменяются). */
+/** Копирует пары одного дня на другой (пары того дня заменяются). Если у дней разные звонки — пары встают по номеру. */
 export function copyDay(from: number, to: number) {
   const now = nowSec()
-  const copies = classesOnWeekday(from).map((c) => ({ ...c, id: uuid(), weekday: to, createdAt: now, updatedAt: now }))
+  const src = bellsFor(from)
+  const dst = bellsFor(to)
+  const copies = classesOnWeekday(from).map((c) => {
+    const i = slotIndex(src, c.startMin)
+    const moved = i != null && dst[i] && (dst[i].start !== src[i].start || dst[i].end !== src[i].end)
+    return { ...c, id: uuid(), weekday: to, createdAt: now, updatedAt: now, ...(moved ? { startMin: dst[i!].start, endMin: dst[i!].end } : {}) }
+  })
   commit({
     classes: [...data.value.classes.map((c) => (!c.deletedAt && c.weekday === to ? { ...c, deletedAt: now, updatedAt: now } : c)), ...copies],
   })
@@ -558,8 +681,32 @@ export function addParsedClasses(list: ParsedClass[], replace: boolean) {
       room: p.room, kind: p.kind, parity: p.parity, createdAt: now, updatedAt: now,
     }))
   const old = replace ? data.value.classes.map((c) => (c.deletedAt ? c : { ...c, deletedAt: now, updatedAt: now })) : data.value.classes
-  commit({ classes: [...old, ...fresh] })
-  return fresh.length
+  // Та же пара уже есть (вставили расписание второй раз) — не дублируем
+  const key = (c: ClassSlot) => [c.weekday, c.startMin, normalize(c.title.trim()), c.parity, normalize(c.kind), normalize(c.room)].join('|')
+  const have = new Set(old.filter((c) => !c.deletedAt).map(key))
+  const added = fresh.filter((c) => !have.has(key(c)) && (have.add(key(c)), true))
+  commit({ classes: [...old, ...added] })
+  return added.length
+}
+
+/** Все преподаватели из расписания (свежие — первыми); «Иванов И.И., Петров П.П.» — это двое. */
+export function knownTeachers(): string[] {
+  const seen = new Map<string, string>()
+  for (const c of [...classes()].sort((a, b) => b.updatedAt - a.updatedAt)) {
+    for (const t of c.teacher.split(/\s*[,;]\s*/)) {
+      const name = t.trim()
+      if (name && !seen.has(normalize(name))) seen.set(normalize(name), name)
+    }
+  }
+  return [...seen.values()]
+}
+
+/** Кто обычно ведёт этот предмет */
+export function teacherOf(title: string): string | null {
+  const key = normalize(title.trim())
+  if (!key) return null
+  const c = [...classes()].sort((a, b) => b.updatedAt - a.updatedAt).find((x) => normalize(x.title.trim()) === key && x.teacher.trim())
+  return c?.teacher ?? null
 }
 
 /** Основы слов из названий предметов и фамилий преподавателей: «лаба Вилисова» — это учёба. */
@@ -596,30 +743,11 @@ export function nowItem(date: Date): NowItem | null {
 // MARK: - Перенос с Mac
 
 /** Принимает файл экспорта (с Mac или с другого телефона): побеждает более свежая правка. */
-export function importSnapshot(incoming: Partial<Snapshot>): number {
-  let count = 0
-  const merge = <T extends { id: string; updatedAt: number }>(local: T[], other: T[] = []): T[] => {
-    const byID = new Map(local.map((x) => [x.id, x]))
-    for (const r of other) {
-      if (!r?.id) continue
-      const mine = byID.get(r.id)
-      if (!mine || r.updatedAt > mine.updatedAt) {
-        byID.set(r.id, r)
-        count++
-      }
-    }
-    return [...byID.values()]
-  }
-  const d = data.value
-  // Mac хранит оформление заметок в RTF — здесь показываем простой текст, RTF оставляем как есть
-  const incomingNotes = (incoming.notes ?? []).map((n) => ({ ...n, html: n.html ?? null }))
-  commit({
-    tasks: merge(d.tasks, incoming.tasks),
-    notes: merge(d.notes, incomingNotes),
-    classes: merge(d.classes, incoming.classes),
-    areas: merge(d.areas, incoming.areas),
-    settings: merge(d.settings, incoming.settings),
-  })
+export function importSnapshot(raw: unknown): number {
+  const incoming = cleanSnapshot(raw)
+  if (!incoming) throw new Error('Это не файл Komet')
+  const { snapshot, count } = mergeSnapshots(data.value, incoming)
+  if (count) commit(snapshot)
   return count
 }
 
