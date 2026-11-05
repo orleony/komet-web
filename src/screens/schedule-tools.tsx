@@ -69,12 +69,23 @@ function paramsFrom(slots: BellSlot[]): BellParams {
 }
 
 /** Звонки одной анкетой: Komet сам строит сетку, любое время можно поправить. */
-export function BellsWizard({ onClose, onDone }: { onClose: () => void; onDone?: () => void }) {
+export function BellsWizard({ onClose, onDone, day }: { onClose: () => void; onDone?: () => void; day?: number }) {
   const sheet = useSheet(onClose)
-  const existing = store.bells()
+  /** 0 — для всех дней, 1…7 — особые звонки одного дня (например, ВУЦ по вторникам) */
+  const [scope, setScope] = useState<number>(day ?? 0)
+  const load = (d: number) => {
+    const list = d ? store.dayBells(d) ?? store.bells() : store.bells()
+    return list.length ? list : computeBells(defaultBellParams)
+  }
   const [step, setStep] = useState<'bells' | 'parity'>('bells')
-  const [p, setP] = useState<BellParams>(existing.length ? paramsFrom(existing) : defaultBellParams)
-  const [slots, setSlots] = useState<BellSlot[]>(store.hasBells() || existing.length ? existing : computeBells(defaultBellParams))
+  const [p, setP] = useState<BellParams>(paramsFrom(load(scope)))
+  const [slots, setSlots] = useState<BellSlot[]>(load(scope))
+  const switchScope = (d: number) => {
+    setScope(d)
+    const list = load(d)
+    setSlots(list)
+    setP(paramsFrom(list))
+  }
   const update = (next: Partial<BellParams>) => {
     const params = { ...p, ...next }
     setP(params)
@@ -95,7 +106,17 @@ export function BellsWizard({ onClose, onDone }: { onClose: () => void; onDone?:
 
   return (
     <Sheet closing={sheet.closing} title="Звонки" onClose={sheet.close}
-      action={<button class="btn primary" onClick={() => { store.setBells(slots); if (store.weekParity(new Date()) == null && !store.classes().length) setStep('parity'); else { onDone?.(); sheet.close() } }}>Готово</button>}>
+      action={<button class="btn primary" onClick={() => { store.setBells(slots, scope || undefined); if (store.weekParity(new Date()) == null && !store.classes().length) setStep('parity'); else { onDone?.(); sheet.close() } }}>Готово</button>}>
+      <div>
+        <div class="label">Для каких дней</div>
+        <Segments value={scope} onChange={switchScope} options={[{ value: 0, title: 'Все' }, ...[1, 2, 3, 4, 5, 6].map((d) => ({ value: d, title: weekdayShort[d - 1] }))]} />
+        {scope > 0 && (
+          <div class="hint" style={{ marginTop: 6 }}>
+            {store.dayBells(scope) ? `Особые звонки: ${weekdayNames[scope - 1].toLowerCase()}. ` : `${weekdayNames[scope - 1]} пока идёт по общим звонкам — задай свои. `}
+            {store.dayBells(scope) && <button class="btn-text" style={{ padding: 0, fontSize: 12.5 }} onClick={() => { store.clearDayBells(scope); sheet.close() }}>Вернуть общие</button>}
+          </div>
+        )}
+      </div>
       <div class="row"><span class="grow">Первая пара начинается в</span><TimeInput value={p.first} onChange={(m) => update({ first: m })} /></div>
       <div>
         <div class="label">Сколько идёт пара</div>
@@ -137,38 +158,62 @@ export function BellsWizard({ onClose, onDone }: { onClose: () => void; onDone?:
 // MARK: - Сетка недели
 
 /** Дни × номера пар. Нажал на клетку — вписал предмет; клетка делится на числитель и знаменатель. */
-export function ScheduleGrid({ shown }: { shown: WeekParity | null }) {
+export function ScheduleGrid({ shown, onDayBells }: { shown: WeekParity | null; onDayBells: (day: number) => void }) {
   const bells = store.bells()
   const [cell, setCell] = useState<{ day: number; slot: number } | null>(null)
   const [copyFrom, setCopyFrom] = useState<number | null>(null)
   const all = store.classes()
   const days = all.some((c) => c.weekday === 7) ? [1, 2, 3, 4, 5, 6, 7] : [1, 2, 3, 4, 5, 6]
   const today = ((new Date().getDay() + 6) % 7) + 1
-  const offGrid = all.filter((c) => slotIndex(bells, c.startMin) == null)
+  const dayBells = new Map(days.map((d) => [d, store.bellsFor(d)]))
+  const custom = new Set(days.filter((d) => store.dayBells(d)))
+  const rows = Math.max(0, ...[...dayBells.values()].map((b) => b.length))
+  const offGrid = all.filter((c) => slotIndex(dayBells.get(c.weekday) ?? bells, c.startMin) == null)
+  const offDays = store.offBellDays()
 
-  if (!bells.length) return <div class="empty">Сначала задай звонки — кнопка «Звонки» сверху</div>
+  if (!rows) return <div class="empty">Сначала задай звонки — кнопка «Звонки» сверху</div>
 
   return (
     <div class="section">
+      {offDays.length > 0 && (
+        // Пары дня не попадают в общие звонки — у этого дня своё время (ВУЦ, физра, другой корпус)
+        <div class="card section" style={{ border: '1.5px solid rgba(99,168,255,0.45)' }}>
+          <div>
+            <div class="toggle-title">{offDays.map((d) => weekdayNames[d - 1]).join(', ')}: пары по своему времени</div>
+            <div class="hint" style={{ fontSize: 12.5, marginTop: 2 }}>Они не совпадают с общими звонками, поэтому в сетке съезжают. Пусть у {offDays.length > 1 ? 'этих дней' : 'этого дня'} будут свои звонки:</div>
+          </div>
+          <div class="row wrap">
+            {offDays.map((d) => (
+              <button key={d} class="btn secondary" onClick={() => { store.fitDayBells(d); showToast(`${weekdayNames[d - 1]}: свои звонки по парам`) }}>
+                Подстроить: {weekdayShort[d - 1]}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
       <div class="grid-wrap">
         <div class="sgrid" style={{ gridTemplateColumns: `34px repeat(${days.length}, 1fr)` }}>
           <div />
           {days.map((d) => (
-            <button key={d} class={'sgrid-day' + (d === today ? ' today' : '')} onClick={() => setCopyFrom(d)} aria-label={`${weekdayNames[d - 1]}: скопировать`}>
-              {weekdayShort[d - 1]}
+            <button key={d} class={'sgrid-day' + (d === today ? ' today' : '') + (custom.has(d) ? ' custom' : '')} onClick={() => setCopyFrom(d)}
+              aria-label={`${weekdayNames[d - 1]}${custom.has(d) ? ', свои звонки' : ''}: скопировать или задать звонки`}>
+              {weekdayShort[d - 1]}{custom.has(d) && <i class="sgrid-dot" />}
             </button>
           ))}
-          {bells.map((b, i) => (
+          {[...Array(rows)].map((_, i) => (
             <Fragment key={i}>
-              <div class="sgrid-time"><b>{i + 1}</b>{time(b.start)}</div>
+              <div class="sgrid-time"><b>{i + 1}</b>{bells[i] ? time(bells[i].start) : ''}</div>
               {days.map((d) => {
-                const here = all.filter((c) => c.weekday === d && slotIndex(bells, c.startMin) === i)
+                const own = dayBells.get(d)!
+                if (!own[i]) return <div key={`${d}-${i}`} />
+                const here = all.filter((c) => c.weekday === d && slotIndex(own, c.startMin) === i)
                 const every = here.find((c) => c.parity === 'every')
                 const num = here.find((c) => c.parity === 'numerator')
                 const den = here.find((c) => c.parity === 'denominator')
                 const dim = (p: WeekParity) => shown != null && p !== shown
                 return (
                   <button key={`${d}-${i}`} class={'sgrid-cell' + (here.length ? ' filled' : '')} onClick={() => setCell({ day: d, slot: i })}>
+                    {custom.has(d) && <span class="sgrid-own-time">{time(own[i].start)}</span>}
                     {every && <span class="sgrid-item">{every.title}</span>}
                     {!every && (num || den) && (
                       <>
@@ -187,8 +232,8 @@ export function ScheduleGrid({ shown }: { shown: WeekParity | null }) {
       <div class="hint">Нажми на клетку, чтобы вписать пару. На день недели — чтобы скопировать его.</div>
       {offGrid.length > 0 && <div class="hint">Не по звонкам: {offGrid.map((c) => `${weekdayShort[c.weekday - 1]} ${time(c.startMin)} ${c.title}`).join(', ')} — видно в списке</div>}
 
-      {cell && <CellEditor day={cell.day} slot={bells[cell.slot]} index={cell.slot} onClose={() => setCell(null)} />}
-      {copyFrom && <CopyDay from={copyFrom} days={days} onClose={() => setCopyFrom(null)} />}
+      {cell && <CellEditor day={cell.day} slot={store.bellsFor(cell.day)[cell.slot]} index={cell.slot} onClose={() => setCell(null)} />}
+      {copyFrom && <CopyDay from={copyFrom} days={days} onClose={() => setCopyFrom(null)} onDayBells={() => { const d = copyFrom; setCopyFrom(null); onDayBells(d) }} />}
     </div>
   )
 }
@@ -279,11 +324,17 @@ function CellEditor({ day, slot, index, onClose }: { day: number; slot: BellSlot
   )
 }
 
-function CopyDay({ from, days, onClose }: { from: number; days: number[]; onClose: () => void }) {
+function CopyDay({ from, days, onClose, onDayBells }: { from: number; days: number[]; onClose: () => void; onDayBells: () => void }) {
   const sheet = useSheet(onClose)
   const count = store.classesOnWeekday(from).length
+  const own = store.dayBells(from)
   return (
     <Sheet closing={sheet.closing} title={weekdayNames[from - 1]} onClose={sheet.close}>
+      <button class="link-row" onClick={onDayBells}>
+        <b class="grow">{own ? 'Свои звонки этого дня' : 'Задать свои звонки этому дню'}</b>
+        <span class="hint">{own ? `с ${time(own[0].start)}` : 'например, ВУЦ'}</span>
+      </button>
+      {own && <button class="btn-text" style={{ alignSelf: 'flex-start' }} onClick={() => { store.clearDayBells(from); sheet.close() }}>Вернуть общие звонки</button>}
       {count === 0 ? <div class="hint">В этот день пар нет — копировать нечего</div> : (
         <>
           <div class="hint" style={{ fontSize: 13.5 }}><Copy size={13} /> Скопировать {count} {count === 1 ? 'пару' : count < 5 ? 'пары' : 'пар'} на другой день — пары того дня заменятся:</div>
@@ -316,7 +367,11 @@ export function ScheduleImport({ mode, onClose }: { mode: 'text' | 'ics'; onClos
   const addable = (parsed ?? []).filter((c, i) => !skip.has(i) && c.startMin != null).length
 
   const parseText = () => {
-    setParsed(parseScheduleText(text, bells))
+    // «3 пара» во вторник — по звонкам вторника, если у него свои
+    setParsed(parseScheduleText(text, bells).map((c) => {
+      const own = store.dayBells(c.weekday)
+      return own && c.number != null && own[c.number - 1] ? { ...c, startMin: own[c.number - 1].start, endMin: own[c.number - 1].end } : c
+    }))
     setSkip(new Set())
   }
   const parseFile = async (file: File) => {

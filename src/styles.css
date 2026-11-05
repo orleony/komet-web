@@ -226,3 +226,9 @@ input, textarea, select { font-size: 16px; }
 .sgrid-item.half { -webkit-line-clamp: 2; max-height: 2.4em; }
 .sgrid-cell { max-height: 64px; }
 .toast { display: flex; align-items: center; white-space: nowrap; }
+
+/* Дни со своими звонками */
+.sgrid-day { position: relative; }
+.sgrid-day.custom { color: var(--class); }
+.sgrid-dot { position: absolute; top: 2px; right: 6px; width: 5px; height: 5px; border-radius: 50%; background: var(--class); }
+.sgrid-own-time { font-size: 9px; color: var(--secondary); text-align: center; font-variant-numeric: tabular-nums; line-height: 1; margin-bottom: 1px; }

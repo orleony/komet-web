@@ -54,6 +54,7 @@ export function Schedule() {
   const [editing, setEditing] = useState<{ slot: ClassSlot; isNew: boolean } | null>(null)
   const [weekMenu, setWeekMenu] = useState(false)
   const [tool, setTool] = useState<'bells' | 'text' | 'ics' | null>(null)
+  const [bellsDay, setBellsDay] = useState<number | undefined>(undefined)
   const view = store.prefs.value.scheduleView
   const now = store.clock.value
   const current = store.weekParity(now)
@@ -93,7 +94,7 @@ export function Schedule() {
         </button>
       </div>
 
-      {view === 'grid' && (store.classes().length > 0 || store.hasBells()) && <ScheduleGrid shown={shown} />}
+      {view === 'grid' && (store.classes().length > 0 || store.hasBells()) && <ScheduleGrid shown={shown} onDayBells={(d) => { setBellsDay(d); setTool('bells') }} />}
 
       {view === 'list' && [1, 2, 3, 4, 5, 6, 7].map((day) => {
         const slots = store.classesOnWeekday(day).filter((s) => shown == null || s.parity === 'every' || s.parity === shown)
@@ -126,12 +127,12 @@ export function Schedule() {
             </button>
           ))}
           <div class="label" style={{ margin: '6px 0 0' }}>Заполнить</div>
-          <button class="link-row" onClick={() => { setWeekMenu(false); setTool('bells') }}><span class="ic"><Bell size={16} /></span><b class="grow">Звонки</b></button>
+          <button class="link-row" onClick={() => { setWeekMenu(false); setBellsDay(undefined); setTool('bells') }}><span class="ic"><Bell size={16} /></span><b class="grow">Звонки</b></button>
           <button class="link-row" onClick={() => { setWeekMenu(false); setTool('text') }}><span class="ic"><ClipboardPaste size={16} /></span><b class="grow">Вставить текстом или с фото</b></button>
           <button class="link-row" onClick={() => { setWeekMenu(false); setTool('ics') }}><span class="ic"><CalendarPlus size={16} /></span><b class="grow">Загрузить календарь (.ics)</b></button>
         </Sheet>
       )}
-      {tool === 'bells' && <BellsWizard onClose={() => setTool(null)} onDone={() => store.setPref('scheduleView', 'grid')} />}
+      {tool === 'bells' && <BellsWizard day={bellsDay} onClose={() => { setTool(null); setBellsDay(undefined) }} onDone={() => store.setPref('scheduleView', 'grid')} />}
       {(tool === 'text' || tool === 'ics') && <ScheduleImport mode={tool} onClose={() => setTool(null)} />}
     </Screen>
   )

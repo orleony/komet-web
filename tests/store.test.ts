@@ -36,3 +36,26 @@ describe('клетка сетки', () => {
     expect(store.classes().map((c) => [c.title, c.parity]).sort()).toEqual([['A', 'denominator'], ['A', 'numerator']])
   })
 })
+
+describe('свои звонки дня (ВУЦ по вторникам)', () => {
+  const day = (id: string, weekday: number, start: number): ClassSlot => ({ ...cls(id, start), weekday })
+  it('общие звонки подбираются без особого дня, а он попадает в подсказку', () => {
+    store.data.value = { ...store.data.value, classes: [day('M1', 1, t(8, 40)), day('M2', 1, t(10, 25)), day('W1', 3, t(8, 40)), day('W2', 3, t(10, 25)), day('V1', 2, t(10, 0)), day('V2', 2, t(11, 40))] }
+    expect(store.bells().map((b) => b.start)).toEqual([t(8, 40), t(10, 25)])
+    expect(store.offBellDays()).toEqual([2])
+    store.fitDayBells(2)
+    expect(store.dayBells(2)?.map((b) => b.start)).toEqual([t(10, 0), t(11, 40)])
+    expect(store.offBellDays()).toEqual([])
+  })
+  it('смена общих звонков не двигает особый день, а звонки дня двигают только его', () => {
+    store.data.value = { ...store.data.value, classes: [day('M1', 1, t(9, 0)), day('V1', 2, t(10, 0))] }
+    store.setBells([{ start: t(9, 0), end: t(10, 30) }])
+    store.setBells([{ start: t(10, 0), end: t(11, 30) }], 2)
+    store.setBells([{ start: t(8, 30), end: t(10, 0) }])
+    expect(starts()).toEqual({ M1: t(8, 30), V1: t(10, 0) })
+    store.setBells([{ start: t(10, 15), end: t(11, 45) }], 2)
+    expect(starts()).toEqual({ M1: t(8, 30), V1: t(10, 15) })
+    expect(store.bellsFor(2)[0].start).toBe(t(10, 15))
+    expect(store.bellsFor(1)[0].start).toBe(t(8, 30))
+  })
+})

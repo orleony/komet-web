@@ -409,34 +409,92 @@ export const deleteClass = (slot: ClassSlot) => saveClass({ ...slot, deletedAt: 
 // MARK: - Звонки и сетка
 
 const bellsKey = 'schedule.bells'
+/** Особые звонки отдельных дней: { "2": [...] } — например, военная кафедра по вторникам с 10:00 */
+const dayBellsKey = 'schedule.bells.days'
 
-/** Звонки: заданные мастером или подобранные по уже введённым парам. */
-export function bells(): BellSlot[] {
-  const raw = shared(bellsKey)
-  if (raw) {
-    try {
-      const list = JSON.parse(raw)
-      if (Array.isArray(list) && list.length) return list
-    } catch {}
+function parseBells(raw: string | null): BellSlot[] | null {
+  if (!raw) return null
+  try {
+    const list = JSON.parse(raw)
+    return Array.isArray(list) && list.length ? list : null
+  } catch {
+    return null
   }
-  return inferBells(classes())
 }
 
-export const hasBells = () => !!shared(bellsKey)
+function dayBellsMap(): Record<string, BellSlot[]> {
+  try {
+    const map = JSON.parse(shared(dayBellsKey) ?? '{}')
+    return map && typeof map === 'object' ? map : {}
+  } catch {
+    return {}
+  }
+}
 
-/** Новые звонки. next — в том же порядке, что старые (i-я пара → i-я пара), даже если время поменяли местами:
+/** Звонки «для всех дней»: заданные мастером или подобранные по уже введённым парам.
+ *  Подбираем по времени, которое встречается хотя бы в двух днях: особый день (ВУЦ по вторникам) не портит общую сетку. */
+export function bells(): BellSlot[] {
+  const set = parseBells(shared(bellsKey))
+  if (set) return set
+  const custom = dayBellsMap()
+  const list = classes().filter((c) => !custom[c.weekday])
+  const days = new Map<number, Set<number>>()
+  for (const c of list) days.set(c.startMin, (days.get(c.startMin) ?? new Set()).add(c.weekday))
+  const multiDay = new Set(list.map((c) => c.weekday)).size > 1
+  return inferBells(list.filter((c) => !multiDay || (days.get(c.startMin)?.size ?? 0) >= 2))
+}
+
+/** Особые звонки дня или null — день идёт по общим. */
+export function dayBells(weekday: number): BellSlot[] | null {
+  const list = dayBellsMap()[weekday]
+  return Array.isArray(list) && list.length ? list : null
+}
+
+/** Звонки конкретного дня: особые, если заданы, иначе общие. */
+export const bellsFor = (weekday: number) => dayBells(weekday) ?? bells()
+
+export const hasBells = () => !!shared(bellsKey) || Object.keys(dayBellsMap()).length > 0
+
+/** Дни, где пары не попадают в общие звонки и особых звонков нет, — им стоит задать свои. */
+export function offBellDays(): number[] {
+  const common = bells()
+  const days = new Set<number>()
+  for (const c of classes()) if (!dayBells(c.weekday) && slotIndex(common, c.startMin) == null) days.add(c.weekday)
+  return [...days].sort()
+}
+
+/** Новые звонки — для всех дней (weekday не задан) или только для одного дня.
+ *  next — в том же порядке, что старые (i-я пара → i-я пара), даже если время поменяли местами:
  *  пара, стоявшая на i-й паре (с допуском ±15 мин), переезжает на новое время i-й пары. */
-export function setBells(next: BellSlot[]) {
-  const old = bells()
+export function setBells(next: BellSlot[], weekday?: number) {
+  const old = weekday ? bellsFor(weekday) : bells()
+  const custom = dayBellsMap()
   const now = nowSec()
   const moved = data.value.classes.map((c) => {
     if (c.deletedAt) return c
+    // Общие звонки не трогают дни с особыми; особые — только свой день
+    if (weekday ? c.weekday !== weekday : custom[c.weekday]) return c
     const i = slotIndex(old, c.startMin)
     const target = i != null ? next[i] : undefined
     return target && (target.start !== c.startMin || target.end !== c.endMin) ? { ...c, startMin: target.start, endMin: target.end, updatedAt: now } : c
   })
   commit({ classes: moved })
-  setShared(bellsKey, JSON.stringify([...next].sort((a, b) => a.start - b.start)))
+  const sorted = [...next].sort((a, b) => a.start - b.start)
+  if (weekday) setShared(dayBellsKey, JSON.stringify({ ...custom, [weekday]: sorted }))
+  else setShared(bellsKey, JSON.stringify(sorted))
+}
+
+/** День снова идёт по общим звонкам (пары остаются на своём времени). */
+export function clearDayBells(weekday: number) {
+  const custom = dayBellsMap()
+  delete custom[weekday]
+  setShared(dayBellsKey, JSON.stringify(custom))
+}
+
+/** Звонки дня — по его парам: одно нажатие для «во вторник всё по-другому». */
+export function fitDayBells(weekday: number) {
+  const custom = dayBellsMap()
+  setShared(dayBellsKey, JSON.stringify({ ...custom, [weekday]: inferBells(classesOnWeekday(weekday)) }))
 }
 
 export interface CellEntry {
