@@ -52,8 +52,9 @@ export function buildReminders(now = new Date()): Reminder[] {
     for (const t of plan) {
       const due = toDate(t.dueDate)!
       const area = store.areaOf(t).title
-      if (p.deadlineWhen !== 'same') items.push({ at: at(due, p.deadlineTime - 24 * 60), title: `Завтра срок: ${t.title}`, body: area, tag: `due-${t.id}` })
-      if (p.deadlineWhen !== 'before') items.push({ at: at(due, p.deadlineTime), title: `Сегодня срок: ${t.title}`, body: area, tag: `due-today-${t.id}` })
+      // Заголовок — когда срок и раздел, текст — сама задача
+      if (p.deadlineWhen !== 'same') items.push({ at: at(due, p.deadlineTime - 24 * 60), title: `Завтра срок · ${area}`, body: t.title, tag: `due-${t.id}` })
+      if (p.deadlineWhen !== 'before') items.push({ at: at(due, p.deadlineTime), title: `Сегодня срок · ${area}`, body: t.title, tag: `due-today-${t.id}` })
     }
   }
 

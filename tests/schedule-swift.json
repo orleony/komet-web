@@ -1,0 +1,922 @@
+{
+  "ics" : [
+    [
+      {
+        "endMin" : 615,
+        "kind" : "Лекция",
+        "number" : 1,
+        "parity" : "every",
+        "room" : "301",
+        "startMin" : 520,
+        "teacher" : "Иванов Иван Иванович",
+        "title" : "Математический анализ",
+        "weekday" : 1
+      },
+      {
+        "endMin" : 720,
+        "kind" : "Практика",
+        "number" : 2,
+        "parity" : "numerator",
+        "room" : "214",
+        "startMin" : 625,
+        "teacher" : "",
+        "title" : "Физика",
+        "weekday" : 2
+      }
+    ],
+    [
+      {
+        "endMin" : 600,
+        "kind" : "",
+        "number" : 1,
+        "parity" : "every",
+        "room" : "",
+        "startMin" : 510,
+        "teacher" : "",
+        "title" : "Математический анализ",
+        "weekday" : 1
+      }
+    ],
+    [
+      {
+        "endMin" : 600,
+        "kind" : "Лекция",
+        "number" : 1,
+        "parity" : "every",
+        "room" : "",
+        "startMin" : 510,
+        "teacher" : "Иванов И.И.",
+        "title" : "Матан",
+        "weekday" : 1
+      }
+    ],
+    [
+      {
+        "endMin" : 615,
+        "kind" : "Лекция",
+        "number" : 1,
+        "parity" : "every",
+        "room" : "",
+        "startMin" : 520,
+        "teacher" : "Иванов Иван Иванович",
+        "title" : "Матан",
+        "weekday" : 1
+      },
+      {
+        "endMin" : 615,
+        "kind" : "Лекция",
+        "number" : 1,
+        "parity" : "every",
+        "room" : "",
+        "startMin" : 520,
+        "teacher" : "Иванов Иван Иванович",
+        "title" : "Матан",
+        "weekday" : 3
+      }
+    ],
+    [
+
+    ]
+  ],
+  "texts" : [
+    [
+      {
+        "endMin" : 600,
+        "kind" : "Лекция",
+        "number" : 1,
+        "parity" : "every",
+        "room" : "301",
+        "startMin" : 510,
+        "teacher" : "Иванов И.И.",
+        "title" : "Матанализ",
+        "weekday" : 1
+      },
+      {
+        "endMin" : 700,
+        "kind" : "Практика",
+        "number" : 2,
+        "parity" : "numerator",
+        "room" : "214",
+        "startMin" : 610,
+        "teacher" : "",
+        "title" : "Физика",
+        "weekday" : 1
+      }
+    ],
+    [
+      {
+        "endMin" : 720,
+        "kind" : "Лабораторная работа",
+        "number" : 2,
+        "parity" : "every",
+        "room" : "254",
+        "startMin" : 625,
+        "teacher" : "Гизбрехт И.И.",
+        "title" : "Сети ЭВМ",
+        "weekday" : 3
+      }
+    ],
+    [
+      {
+        "endMin" : 600,
+        "kind" : "Лекция",
+        "number" : 1,
+        "parity" : "every",
+        "room" : "301",
+        "startMin" : 510,
+        "teacher" : "Иванов Иван Иванович",
+        "title" : "Математический анализ",
+        "weekday" : 4
+      }
+    ],
+    [
+      {
+        "endMin" : 600,
+        "kind" : "1 подгр.",
+        "number" : 1,
+        "parity" : "every",
+        "room" : "410",
+        "startMin" : 510,
+        "teacher" : "",
+        "title" : "Английский язык",
+        "weekday" : 4
+      },
+      {
+        "endMin" : 700,
+        "kind" : "",
+        "number" : 2,
+        "parity" : "denominator",
+        "room" : "",
+        "startMin" : 610,
+        "teacher" : "",
+        "title" : "Физика",
+        "weekday" : 4
+      }
+    ],
+    [
+
+    ],
+    [
+      {
+        "endMin" : 600,
+        "kind" : "",
+        "number" : 1,
+        "parity" : "numerator",
+        "room" : "",
+        "startMin" : 510,
+        "teacher" : "",
+        "title" : "Матан",
+        "weekday" : 1
+      },
+      {
+        "endMin" : 600,
+        "kind" : "",
+        "number" : 1,
+        "parity" : "denominator",
+        "room" : "",
+        "startMin" : 510,
+        "teacher" : "",
+        "title" : "Физика",
+        "weekday" : 1
+      }
+    ],
+    [
+      {
+        "endMin" : 600,
+        "kind" : "",
+        "number" : 1,
+        "parity" : "numerator",
+        "room" : "",
+        "startMin" : 510,
+        "teacher" : "",
+        "title" : "Матан",
+        "weekday" : 1
+      },
+      {
+        "endMin" : 600,
+        "kind" : "",
+        "number" : 1,
+        "parity" : "denominator",
+        "room" : "",
+        "startMin" : 510,
+        "teacher" : "",
+        "title" : "Физика",
+        "weekday" : 1
+      }
+    ],
+    [
+      {
+        "endMin" : 600,
+        "kind" : "",
+        "number" : 1,
+        "parity" : "numerator",
+        "room" : "",
+        "startMin" : 510,
+        "teacher" : "",
+        "title" : "Матан",
+        "weekday" : 1
+      },
+      {
+        "endMin" : 600,
+        "kind" : "",
+        "number" : 1,
+        "parity" : "every",
+        "room" : "",
+        "startMin" : 510,
+        "teacher" : "",
+        "title" : "Физика",
+        "weekday" : 2
+      }
+    ],
+    [
+      {
+        "endMin" : 600,
+        "kind" : "",
+        "number" : 1,
+        "parity" : "every",
+        "room" : "305",
+        "startMin" : 510,
+        "teacher" : "",
+        "title" : "Матан",
+        "weekday" : 1
+      },
+      {
+        "endMin" : 700,
+        "kind" : "",
+        "number" : 2,
+        "parity" : "every",
+        "room" : "",
+        "startMin" : 610,
+        "teacher" : "",
+        "title" : "Физика",
+        "weekday" : 1
+      }
+    ],
+    [
+      {
+        "endMin" : 600,
+        "kind" : "",
+        "number" : 1,
+        "parity" : "every",
+        "room" : "305",
+        "startMin" : 510,
+        "teacher" : "",
+        "title" : "Матан",
+        "weekday" : 1
+      }
+    ],
+    [
+      {
+        "endMin" : 600,
+        "kind" : "",
+        "number" : 1,
+        "parity" : "every",
+        "room" : "",
+        "startMin" : 510,
+        "teacher" : "Иванов И.И.",
+        "title" : "Матан",
+        "weekday" : 1
+      },
+      {
+        "endMin" : 700,
+        "kind" : "",
+        "number" : 2,
+        "parity" : "every",
+        "room" : "",
+        "startMin" : 610,
+        "teacher" : "Иванов И.И., Петров П.П.",
+        "title" : "Физика",
+        "weekday" : 1
+      }
+    ],
+    [
+      {
+        "endMin" : null,
+        "kind" : "1 подгр.",
+        "number" : null,
+        "parity" : "every",
+        "room" : "305",
+        "startMin" : null,
+        "teacher" : "",
+        "title" : "Английский язык",
+        "weekday" : 1
+      },
+      {
+        "endMin" : null,
+        "kind" : "1 подгр.",
+        "number" : null,
+        "parity" : "every",
+        "room" : "305",
+        "startMin" : null,
+        "teacher" : "",
+        "title" : "Англ. яз",
+        "weekday" : 1
+      }
+    ],
+    [
+      {
+        "endMin" : 600,
+        "kind" : "",
+        "number" : 1,
+        "parity" : "every",
+        "room" : "",
+        "startMin" : 510,
+        "teacher" : "",
+        "title" : "Матан",
+        "weekday" : 1
+      },
+      {
+        "endMin" : 700,
+        "kind" : "",
+        "number" : 2,
+        "parity" : "denominator",
+        "room" : "",
+        "startMin" : 610,
+        "teacher" : "",
+        "title" : "Физика",
+        "weekday" : 1
+      },
+      {
+        "endMin" : 830,
+        "kind" : "",
+        "number" : 3,
+        "parity" : "every",
+        "room" : "",
+        "startMin" : 740,
+        "teacher" : "",
+        "title" : "Практикум по программированию",
+        "weekday" : 1
+      },
+      {
+        "endMin" : 930,
+        "kind" : "",
+        "number" : 4,
+        "parity" : "every",
+        "room" : "",
+        "startMin" : 840,
+        "teacher" : "Петров П.П.",
+        "title" : "Матан",
+        "weekday" : 1
+      },
+      {
+        "endMin" : 1030,
+        "kind" : "",
+        "number" : 5,
+        "parity" : "every",
+        "room" : "",
+        "startMin" : 940,
+        "teacher" : "",
+        "title" : "Подготовка к ОГЭ-2026",
+        "weekday" : 1
+      }
+    ],
+    [
+      {
+        "endMin" : 690,
+        "kind" : "",
+        "number" : 2,
+        "parity" : "every",
+        "room" : "",
+        "startMin" : 600,
+        "teacher" : "",
+        "title" : "ВУЦ",
+        "weekday" : 2
+      },
+      {
+        "endMin" : 700,
+        "kind" : "",
+        "number" : 2,
+        "parity" : "every",
+        "room" : "",
+        "startMin" : 610,
+        "teacher" : "",
+        "title" : "Строевая",
+        "weekday" : 2
+      }
+    ],
+    [
+      {
+        "endMin" : 600,
+        "kind" : "",
+        "number" : 1,
+        "parity" : "every",
+        "room" : "",
+        "startMin" : 510,
+        "teacher" : "Сидоров С.С.",
+        "title" : "История России",
+        "weekday" : 1
+      },
+      {
+        "endMin" : 700,
+        "kind" : "",
+        "number" : 2,
+        "parity" : "every",
+        "room" : "",
+        "startMin" : 610,
+        "teacher" : "Иванов И.И.",
+        "title" : "Матан",
+        "weekday" : 1
+      }
+    ],
+    [
+      {
+        "endMin" : 600,
+        "kind" : "",
+        "number" : 1,
+        "parity" : "numerator",
+        "room" : "",
+        "startMin" : 510,
+        "teacher" : "",
+        "title" : "Матан",
+        "weekday" : 1
+      },
+      {
+        "endMin" : 600,
+        "kind" : "",
+        "number" : 1,
+        "parity" : "denominator",
+        "room" : "",
+        "startMin" : 510,
+        "teacher" : "",
+        "title" : "Физика",
+        "weekday" : 1
+      },
+      {
+        "endMin" : 700,
+        "kind" : "",
+        "number" : 2,
+        "parity" : "every",
+        "room" : "",
+        "startMin" : 610,
+        "teacher" : "",
+        "title" : "Химия",
+        "weekday" : 1
+      }
+    ],
+    [
+      {
+        "endMin" : 600,
+        "kind" : "",
+        "number" : 1,
+        "parity" : "numerator",
+        "room" : "",
+        "startMin" : 510,
+        "teacher" : "",
+        "title" : "Матан",
+        "weekday" : 1
+      },
+      {
+        "endMin" : 600,
+        "kind" : "",
+        "number" : 1,
+        "parity" : "denominator",
+        "room" : "",
+        "startMin" : 510,
+        "teacher" : "",
+        "title" : "Физика",
+        "weekday" : 1
+      },
+      {
+        "endMin" : 700,
+        "kind" : "",
+        "number" : 2,
+        "parity" : "every",
+        "room" : "",
+        "startMin" : 610,
+        "teacher" : "",
+        "title" : "Химия",
+        "weekday" : 1
+      }
+    ],
+    [
+      {
+        "endMin" : 600,
+        "kind" : "",
+        "number" : 1,
+        "parity" : "numerator",
+        "room" : "",
+        "startMin" : 510,
+        "teacher" : "",
+        "title" : "Матан",
+        "weekday" : 1
+      },
+      {
+        "endMin" : 600,
+        "kind" : "",
+        "number" : 1,
+        "parity" : "every",
+        "room" : "",
+        "startMin" : 510,
+        "teacher" : "",
+        "title" : "Физика",
+        "weekday" : 2
+      }
+    ],
+    [
+      {
+        "endMin" : 600,
+        "kind" : "",
+        "number" : 1,
+        "parity" : "denominator",
+        "room" : "",
+        "startMin" : 510,
+        "teacher" : "",
+        "title" : "Матан",
+        "weekday" : 1
+      },
+      {
+        "endMin" : 700,
+        "kind" : "",
+        "number" : 2,
+        "parity" : "numerator",
+        "room" : "",
+        "startMin" : 610,
+        "teacher" : "",
+        "title" : "Физика",
+        "weekday" : 1
+      },
+      {
+        "endMin" : 600,
+        "kind" : "",
+        "number" : 1,
+        "parity" : "every",
+        "room" : "",
+        "startMin" : 510,
+        "teacher" : "",
+        "title" : "Химия",
+        "weekday" : 2
+      }
+    ],
+    [
+      {
+        "endMin" : 600,
+        "kind" : "",
+        "number" : 1,
+        "parity" : "numerator",
+        "room" : "",
+        "startMin" : 510,
+        "teacher" : "",
+        "title" : "Матан",
+        "weekday" : 1
+      },
+      {
+        "endMin" : 700,
+        "kind" : "",
+        "number" : 2,
+        "parity" : "numerator",
+        "room" : "",
+        "startMin" : 610,
+        "teacher" : "",
+        "title" : "Физика",
+        "weekday" : 1
+      },
+      {
+        "endMin" : 600,
+        "kind" : "",
+        "number" : 1,
+        "parity" : "denominator",
+        "room" : "",
+        "startMin" : 510,
+        "teacher" : "",
+        "title" : "Химия",
+        "weekday" : 1
+      },
+      {
+        "endMin" : 600,
+        "kind" : "",
+        "number" : 1,
+        "parity" : "every",
+        "room" : "",
+        "startMin" : 510,
+        "teacher" : "",
+        "title" : "Англ",
+        "weekday" : 2
+      }
+    ],
+    [
+      {
+        "endMin" : 600,
+        "kind" : "",
+        "number" : 1,
+        "parity" : "numerator",
+        "room" : "",
+        "startMin" : 510,
+        "teacher" : "",
+        "title" : "Матан",
+        "weekday" : 1
+      },
+      {
+        "endMin" : 600,
+        "kind" : "",
+        "number" : 1,
+        "parity" : "denominator",
+        "room" : "",
+        "startMin" : 510,
+        "teacher" : "",
+        "title" : "Физика",
+        "weekday" : 1
+      }
+    ],
+    [
+      {
+        "endMin" : 600,
+        "kind" : "",
+        "number" : 1,
+        "parity" : "every",
+        "room" : "",
+        "startMin" : 510,
+        "teacher" : "",
+        "title" : "Матан",
+        "weekday" : 1
+      },
+      {
+        "endMin" : 850,
+        "kind" : "",
+        "number" : null,
+        "parity" : "every",
+        "room" : "",
+        "startMin" : 760,
+        "teacher" : "",
+        "title" : "Физика",
+        "weekday" : 1
+      },
+      {
+        "endMin" : 600,
+        "kind" : "",
+        "number" : 1,
+        "parity" : "every",
+        "room" : "",
+        "startMin" : 510,
+        "teacher" : "",
+        "title" : "Матан",
+        "weekday" : 3
+      }
+    ],
+    [
+      {
+        "endMin" : 600,
+        "kind" : "",
+        "number" : 1,
+        "parity" : "every",
+        "room" : "",
+        "startMin" : 510,
+        "teacher" : "",
+        "title" : "Матан",
+        "weekday" : 1
+      },
+      {
+        "endMin" : 600,
+        "kind" : "",
+        "number" : 1,
+        "parity" : "every",
+        "room" : "",
+        "startMin" : 510,
+        "teacher" : "",
+        "title" : "Физика",
+        "weekday" : 2
+      }
+    ],
+    [
+      {
+        "endMin" : 600,
+        "kind" : "",
+        "number" : 1,
+        "parity" : "every",
+        "room" : "",
+        "startMin" : 510,
+        "teacher" : "",
+        "title" : "Физкультура Спортзал",
+        "weekday" : 6
+      },
+      {
+        "endMin" : 700,
+        "kind" : "Семинар",
+        "number" : 2,
+        "parity" : "every",
+        "room" : "118",
+        "startMin" : 610,
+        "teacher" : "Белов Константин Андреевич",
+        "title" : "Философия",
+        "weekday" : 6
+      }
+    ],
+    [
+      {
+        "endMin" : 830,
+        "kind" : "Лабораторная работа",
+        "number" : 3,
+        "parity" : "every",
+        "room" : "254",
+        "startMin" : 740,
+        "teacher" : "Петров П.П.",
+        "title" : "Программирование",
+        "weekday" : 5
+      },
+      {
+        "endMin" : 930,
+        "kind" : "Практика",
+        "number" : 4,
+        "parity" : "every",
+        "room" : "онлайн",
+        "startMin" : 840,
+        "teacher" : "",
+        "title" : "Базы данных",
+        "weekday" : 5
+      }
+    ],
+    [
+      {
+        "endMin" : 830,
+        "kind" : "Лекция",
+        "number" : 3,
+        "parity" : "every",
+        "room" : "",
+        "startMin" : 740,
+        "teacher" : "",
+        "title" : "История Актовый зал",
+        "weekday" : 2
+      },
+      {
+        "endMin" : 930,
+        "kind" : "Зачёт",
+        "number" : 4,
+        "parity" : "every",
+        "room" : "412",
+        "startMin" : 840,
+        "teacher" : "",
+        "title" : "Экономика",
+        "weekday" : 2
+      }
+    ],
+    [
+      {
+        "endMin" : 600,
+        "kind" : "",
+        "number" : 1,
+        "parity" : "every",
+        "room" : "301",
+        "startMin" : 510,
+        "teacher" : "",
+        "title" : "Матан",
+        "weekday" : 1
+      },
+      {
+        "endMin" : 700,
+        "kind" : "",
+        "number" : 2,
+        "parity" : "every",
+        "room" : "214",
+        "startMin" : 610,
+        "teacher" : "",
+        "title" : "Физика",
+        "weekday" : 2
+      }
+    ],
+    [
+      {
+        "endMin" : 600,
+        "kind" : "Лекция",
+        "number" : 1,
+        "parity" : "every",
+        "room" : "301",
+        "startMin" : 510,
+        "teacher" : "Иванов И.И.",
+        "title" : "Матан",
+        "weekday" : 3
+      },
+      {
+        "endMin" : 700,
+        "kind" : "Практика",
+        "number" : 2,
+        "parity" : "every",
+        "room" : "214",
+        "startMin" : 610,
+        "teacher" : "Смирнова А.В.",
+        "title" : "Физика",
+        "weekday" : 3
+      }
+    ],
+    [
+      {
+        "endMin" : 600,
+        "kind" : "Лабораторная работа",
+        "number" : 1,
+        "parity" : "every",
+        "room" : "5-12",
+        "startMin" : 510,
+        "teacher" : "Козлов К.К.",
+        "title" : "Электротехника",
+        "weekday" : 4
+      },
+      {
+        "endMin" : 700,
+        "kind" : "Лабораторная работа · 2 подгр.",
+        "number" : 2,
+        "parity" : "every",
+        "room" : "5-12",
+        "startMin" : 610,
+        "teacher" : "",
+        "title" : "Электротехника",
+        "weekday" : 4
+      }
+    ],
+    [
+      {
+        "endMin" : 600,
+        "kind" : "",
+        "number" : 1,
+        "parity" : "numerator",
+        "room" : "",
+        "startMin" : 510,
+        "teacher" : "",
+        "title" : "Матанализ",
+        "weekday" : 1
+      },
+      {
+        "endMin" : 600,
+        "kind" : "",
+        "number" : 1,
+        "parity" : "denominator",
+        "room" : "",
+        "startMin" : 510,
+        "teacher" : "",
+        "title" : "Физика",
+        "weekday" : 1
+      }
+    ],
+    [
+      {
+        "endMin" : 600,
+        "kind" : "",
+        "number" : 1,
+        "parity" : "every",
+        "room" : "",
+        "startMin" : 510,
+        "teacher" : "",
+        "title" : "Матан",
+        "weekday" : 1
+      },
+      {
+        "endMin" : 700,
+        "kind" : "",
+        "number" : 2,
+        "parity" : "every",
+        "room" : "Г-301",
+        "startMin" : 610,
+        "teacher" : "",
+        "title" : "Физика",
+        "weekday" : 1
+      }
+    ],
+    [
+      {
+        "endMin" : 600,
+        "kind" : "",
+        "number" : 1,
+        "parity" : "every",
+        "room" : "301\/2",
+        "startMin" : 510,
+        "teacher" : "Иванова Анна Сергеевна",
+        "title" : "Право",
+        "weekday" : 1
+      }
+    ],
+    [
+      {
+        "endMin" : 600,
+        "kind" : "",
+        "number" : 1,
+        "parity" : "every",
+        "room" : "",
+        "startMin" : 510,
+        "teacher" : "",
+        "title" : "ЕГЭ 2026 подготовка",
+        "weekday" : 2
+      }
+    ],
+    [
+      {
+        "endMin" : 600,
+        "kind" : "Экзамен",
+        "number" : 1,
+        "parity" : "every",
+        "room" : "301",
+        "startMin" : 510,
+        "teacher" : "",
+        "title" : "Матанализ",
+        "weekday" : 3
+      },
+      {
+        "endMin" : 700,
+        "kind" : "Консультация",
+        "number" : 2,
+        "parity" : "every",
+        "room" : "214",
+        "startMin" : 610,
+        "teacher" : "",
+        "title" : "по физике",
+        "weekday" : 3
+      }
+    ]
+  ]
+}
