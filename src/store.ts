@@ -181,8 +181,10 @@ async function flush(): Promise<void> {
   saving = (async () => {
     try {
       const merged = await saveMerged(data.value)
-      // В сохранённом оказалось то, чего у нас нет (правка из другой вкладки) — показываем
-      if (merged !== data.value && mergeSnapshots(data.value, merged, false).count) commit(merged, false)
+      // В сохранённом оказалось то, чего у нас нет (правка из другой вкладки) — добавляем к тому, что в памяти сейчас:
+      // пока шло сохранение, здесь могли сделать новую правку, её не теряем
+      const { snapshot, count } = mergeSnapshots(data.value, merged, false)
+      if (count) commit(snapshot, false)
       channel?.postMessage('saved')
     } catch {
       // Соединение с хранилищем могло сломаться — откроем заново и попробуем ещё раз
@@ -692,11 +694,22 @@ export interface CellEntry {
 
 /** Пары клетки после правки. Удаляются только пары из opened (те, что были в редакторе) и не оставшиеся в entries:
  *  чужие пары в той же клетке не трогаем. */
+/** Подгруппы в клетке подписаны: две пары одной недели — «1 подгр.» и «2 подгр.»; осталась одна — подпись убираем. */
+export function labelSubgroups(entries: CellEntry[]): CellEntry[] {
+  const filled = entries.filter((x) => x.title.trim())
+  return filled.map((e) => {
+    const same = filled.filter((x) => x.parity === e.parity)
+    const base = e.kind.split(/\s*·\s*/).filter((k) => k && !/подгр/.test(k)).join(' · ')
+    const n = same.indexOf(e) + 1
+    return { ...e, kind: same.length > 1 ? [base, `${n} подгр.`].filter(Boolean).join(' · ') : base }
+  })
+}
+
 export function setCell(weekday: number, slot: BellSlot, entries: CellEntry[], opened: string[]) {
   const now = nowSec()
   const kept = new Set<string>()
   const next = [...data.value.classes]
-  for (const e of entries.filter((x) => x.title.trim())) {
+  for (const e of labelSubgroups(entries)) {
     const existing = e.id && !kept.has(e.id) ? next.find((c) => c.id === e.id && !c.deletedAt) : undefined
     const base = existing ?? ({ id: uuid(), createdAt: now } as ClassSlot)
     const c: ClassSlot = { ...base, weekday, startMin: slot.start, endMin: slot.end, title: e.title.trim(), teacher: e.teacher.trim(), room: e.room.trim(), kind: e.kind.trim(), parity: e.parity, updatedAt: now, deletedAt: null }
@@ -730,7 +743,7 @@ export function addParsedClasses(list: ParsedClass[], replace: boolean) {
   const fresh: ClassSlot[] = list
     .filter((p) => p.startMin != null)
     .map((p) => ({
-      id: uuid(), weekday: p.weekday, startMin: p.startMin!, endMin: p.endMin ?? p.startMin! + 90, title: p.title, teacher: p.teacher,
+      id: uuid(), weekday: p.weekday, startMin: p.startMin!, endMin: p.endMin != null && p.endMin > p.startMin! ? p.endMin : Math.min(p.startMin! + 90, 23 * 60 + 59), title: p.title, teacher: p.teacher,
       room: p.room, kind: p.kind, parity: p.parity, createdAt: now, updatedAt: now,
     }))
   const old = replace ? data.value.classes.map((c) => (c.deletedAt ? c : { ...c, deletedAt: now, updatedAt: now })) : data.value.classes

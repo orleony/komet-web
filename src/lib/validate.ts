@@ -36,5 +36,6 @@ export function teacherProblem(teacher: string): string | null {
 
 /** «иванов иван иванович» → «Иванов Иван Иванович» */
 export function capitalizeName(teacher: string): string {
-  return teacher.replace(/(^|[\s,;-])(\p{Ll})/gu, (_m, a, b) => a + b.toUpperCase())
+  // После точки тоже: «и.и.» → «И.И.»
+  return teacher.replace(/(^|[\s,;.-])(\p{Ll})/gu, (_m, a, b) => a + b.toUpperCase())
 }

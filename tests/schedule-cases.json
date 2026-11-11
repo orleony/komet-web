@@ -60,7 +60,8 @@
   "09.11.2026 Понедельник\n1 пара Матан\n2 пара Физика Г-301",
   "Пн\n1 пара Право 301/2 Профессор Иванова Анна Сергеевна",
   "Вт\n1 пара ЕГЭ 2026 подготовка",
-  "Ср\n1 пара Экзамен Матанализ 301\n2 пара Консультация по физике 214"
+  "Ср\n1 пара Экзамен Матанализ 301\n2 пара Консультация по физике 214",
+  "Пн\n25:00-26:30 Матан\n9:60-10:30 Физика\n10:00-09:00 Химия\n2 пара Английский"
  ],
  "ics": [
   "BEGIN:VCALENDAR\r\nBEGIN:VEVENT\r\nDTSTART;TZID=Europe/Moscow:20261102T084000\r\nDTEND;TZID=Europe/Moscow:20261102T101500\r\nSUMMARY:Лекция: Математический анализ\r\nLOCATION:301\r\nDESCRIPTION:Иванов Иван Иванович\r\nRRULE:FREQ=WEEKLY;UNTIL=20271230T000000Z\r\nEND:VEVENT\r\nBEGIN:VEVENT\r\nDTSTART:20261103T072500Z\r\nDTEND:20261103T090000Z\r\nSUMMARY:Физика (пр.)\r\nLOCATION:214\r\nRRULE:FREQ=WEEKLY;INTERVAL=2\r\nEND:VEVENT\r\nEND:VCALENDAR",

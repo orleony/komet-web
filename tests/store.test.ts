@@ -106,3 +106,14 @@ describe('клетка с «каждую неделю» и знаменател�
     expect(store.classes().map((c) => c.id).sort()).toEqual(['D', 'E'])
   })
 })
+
+describe('оформление заметки после Mac', () => {
+  it('та же заметка с Mac без html не затирает оформление', () => {
+    const note = { id: 'N', text: 'Привет', html: '<b>Привет</b>', kind: 'note' as const, isPinned: false, createdAt: 1, updatedAt: 5, trashedAt: null, rich: null }
+    store.data.value = { tasks: [], notes: [note], classes: [], areas: [], settings: [] }
+    const fromMac = { ...note } as any
+    delete fromMac.html
+    expect(store.importSnapshot({ notes: [fromMac] })).toBe(0)
+    expect(store.data.value.notes[0].html).toBe('<b>Привет</b>')
+  })
+})

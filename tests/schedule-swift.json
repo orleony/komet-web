@@ -917,6 +917,52 @@
         "title" : "по физике",
         "weekday" : 3
       }
+    ],
+    [
+      {
+        "endMin" : null,
+        "kind" : "",
+        "number" : null,
+        "parity" : "every",
+        "room" : "",
+        "startMin" : null,
+        "teacher" : "",
+        "title" : "Матан",
+        "weekday" : 1
+      },
+      {
+        "endMin" : null,
+        "kind" : "",
+        "number" : null,
+        "parity" : "every",
+        "room" : "",
+        "startMin" : null,
+        "teacher" : "",
+        "title" : "Физика",
+        "weekday" : 1
+      },
+      {
+        "endMin" : 700,
+        "kind" : "",
+        "number" : 2,
+        "parity" : "every",
+        "room" : "",
+        "startMin" : 600,
+        "teacher" : "",
+        "title" : "Химия",
+        "weekday" : 1
+      },
+      {
+        "endMin" : 700,
+        "kind" : "",
+        "number" : 2,
+        "parity" : "every",
+        "room" : "",
+        "startMin" : 610,
+        "teacher" : "",
+        "title" : "Английский",
+        "weekday" : 1
+      }
     ]
   ]
 }

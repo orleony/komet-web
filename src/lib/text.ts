@@ -87,8 +87,11 @@ export function clean(text: string): string {
 const separators =
   '(?:[?;]+|(?<!(?:^|[^\\p{L}])(?:ауд|ул|д|стр|г|кв|корп|каб|пр|т\\.е|т\\.к|им|см|ст|доц|проф|преп|тел|\\p{Lu}))\\.+)(?=\\s|$)|\\n+|(?:,\\s*(?:а\\s+|и\\s+)?|\\s+(?:а|и)\\s+)(?:ещё|еще|также|потом|плюс)(?![\\p{L}])' +
   '|\\s+(?:потом|затем)\\s+(?=\\p{L})' +
-  // «в 18:00 сдать лабу, в 19:00 в зал» — две задачи
-  '|,\\s*(?=(?:в|во|к|ко|до|с|со)\\s+\\d{1,2}[:.]\\d{2}(?![\\d.]))'
+  // «в 18:00 сдать лабу, в 19:00 в зал», «… и в 7 вечера …» — две задачи
+  '|(?:,\\s*|\\s+и\\s+)(?=(?:в|во|к|ко|до|с|со)\\s+\\d{1,2}(?:[:.]\\d{2}(?![\\d.])|\\s+(?:утра|дня|вечера|ночи)(?![\\p{L}])))' +
+  // «в пятницу в 18:00 и в субботу в 12:00», «завтра в 18:00, послезавтра в 19:00»
+  '|(?:,\\s*|\\s+и\\s+)(?=(?:в|во|на)\\s+(?:понедельник|вторник|среду|четверг|пятницу|субботу|воскресенье)(?![\\p{L}]))' +
+  '|,\\s*(?=(?:завтра|послезавтра|сегодня)(?![\\p{L}]))'
 
 const leadingWords =
   '^(?:(?:и|а|ну|так|ещё|еще|потом|затем|также|плюс|мне|я|надо бы|надо|нужно бы|нужно|не забыть|не забудь(?:те)?|хочу|хотелось бы|обязательно|должен|должна)(?![\\p{L}])[,\\s]*)+'
@@ -108,13 +111,17 @@ export function tasksFrom(text: string, hints: string[] = [], now = new Date()):
   let carriedTime: number | null = null
   let carriedPriority = Priority.Normal
   let carriedWeak = false
+  /** «В пятницу:» отдельной строкой — день для всех задач ниже, до следующего такого заголовка */
+  let sticky = false
 
   for (const piece of split(cleaned, separators)) {
     const box = { title: piece }
     const priority = extractPriority(box)
     const weak = { value: false }
     const time = extractTime(box)
-    const due = dayForTime(extractDue(box, weak, now), time, now)
+    const ownDue = extractDue(box, weak, now)
+    // «Сегодня в 18:00 тренировка» — со временем это уже дело, а не дневниковая запись
+    if (time != null) weak.value = false
     let title = box.title
     title = replace(title, '\\s{2,}', ' ')
     title = replace(title, '\\s+([,.;:])', '$1')
@@ -125,11 +132,14 @@ export function tasksFrom(text: string, hints: string[] = [], now = new Date()):
     title = trimChars(replace(title, leadingWords, ''), ' ,.:;-—!')
     // Остался один предлог («завтра на») — это не задача
     if ([...title].length < 2 || test(title, '^' + leftovers + '$')) {
+      const due = dayForTime(ownDue, time, now)
       if (due) {
-        if (!result.length) {
+        const heading = /:\s*$/.test(piece)
+        if (!result.length || heading) {
           carriedDue = due
           carriedTime = time
           carriedWeak = weak.value
+          sticky = heading
         } else if (!result[result.length - 1].dueDate) {
           result[result.length - 1].dueDate = due
           result[result.length - 1].dueTime = time
@@ -142,18 +152,24 @@ export function tasksFrom(text: string, hints: string[] = [], now = new Date()):
       continue
     }
     const routed = router.route(title, hints)
+    // Свой день, иначе день заголовка («в пятницу:» выше), иначе по времени — сегодня или завтра
+    const day = ownDue ?? carriedDue
+    const dueTime = time ?? (ownDue ? null : carriedTime)
+    const due = dayForTime(day, dueTime, now)
     result.push({
       title: capitalizeFirst(title),
       area: routed.area,
-      dueDate: due ?? carriedDue,
-      dueTime: due ? time : carriedTime,
+      dueDate: due,
+      dueTime: due ? dueTime : null,
       priority: priority === Priority.Normal ? carriedPriority : priority,
       areaMatched: routed.source.kind !== 'fallback',
-      dueIsWeak: due == null ? carriedWeak : weak.value,
+      dueIsWeak: ownDue == null && time == null ? carriedWeak : weak.value,
       suggest: routed.suggest,
     })
-    carriedDue = null
-    carriedTime = null
+    if (!sticky) {
+      carriedDue = null
+      carriedTime = null
+    }
     carriedPriority = Priority.Normal
   }
   return result
@@ -161,27 +177,43 @@ export function tasksFrom(text: string, hints: string[] = [], now = new Date()):
 
 const leftovers = '(?:на|до|к|ко|в|во|с|со|и|а|по|за|о|об|или)'
 
-/** Время задачи: «в 18:00», «к 9:30», «в 15.30», «с 10:00 до 12:00» (берём начало), «в 7 вечера», «в 9 утра», «в 18 ч».
- *  Вырезает его из текста; минуты от полуночи или null. «к 12.11» — это дата, не время. */
+/** Время задачи: «в 18:00», «к 9:30», «в 15.30», «с 10:00 до 12:00» (берём начало), «в 7 вечера», «в 7:30 вечера»,
+ *  «в 9 утра», «в 18 ч», «в 18 часов 30 минут». Вырезает его из текста; минуты от полуночи или null.
+ *  С точкой — только если не похоже на дату: «к 18.00», «в 15.30» — время, «к 12.11», «с 15.11» — дата. */
 export function extractTime(box: { title: string }): number | null {
   const valid = (h: number, m: number) => (h >= 0 && h <= 23 && m >= 0 && m <= 59 ? h * 60 + m : null)
+  /** «12.11» — 12 ноября: день 1–31 и месяц 1–12 */
+  const dateLike = (a: number, b: number) => a >= 1 && a <= 31 && b >= 1 && b <= 12
+  /** «7 вечера» → 19, «11 дня» → 11, «2 дня» → 14, «12 вечера» → 0 */
+  const partOfDay = (h: number, part: string | undefined) => {
+    switch ((part ?? '').toLowerCase()) {
+      case 'утра': return h === 12 ? 0 : h
+      case 'дня': return h >= 1 && h <= 5 ? h + 12 : h
+      case 'вечера': return h === 12 ? 0 : h < 12 ? h + 12 : h
+      case 'ночи': return h === 12 ? 0 : h
+      default: return h
+    }
+  }
+  const prep = '(?:в|во|к|ко|до|с|со|на)'
+  const part = '(?:\\s+(утра|дня|вечера|ночи)(?![\\p{L}]))?'
   const patterns: [string, (v: (string | undefined)[]) => number | null][] = [
-    // Промежуток: «с 10:00 до 12:00», «10:00-11:30»
-    [word('(?:(?:с|со)\\s+)?(\\d{1,2})[:.](\\d{2})\\s*(?:-|–|—|до)\\s*\\d{1,2}[:.]\\d{2}'), (v) => valid(Number(v[0]), Number(v[1]))],
-    // «в 7 вечера», «в 9 утра», «к 3 часам дня»
-    [word('(?:в|во|к|ко|до|на)\\s+(\\d{1,2})(?:\\s*(?:ч|час\\p{L}*))?\\s+(утра|дня|вечера|ночи)'), (v) => {
-      let h = Number(v[0])
-      const part = (v[1] ?? '').toLowerCase()
-      if ((part === 'вечера' || part === 'дня') && h < 12) h += 12
-      if (part === 'ночи' && h === 12) h = 0
-      return valid(h, 0)
+    // Промежуток: «с 10:00 до 12:00», «10:00-11:30», «с 10.10 до 11.45»; «12.11-15.11» — это даты
+    [word('(?:(?:с|со)\\s+)?(\\d{1,2})([:.])(\\d{2})\\s*(?:-|–|—|до)\\s*(\\d{1,2})([:.])(\\d{2})(?![\\d.])'), (v) => {
+      const [a, sa, b, c, sc, d] = [Number(v[0]), v[1], Number(v[2]), Number(v[3]), v[4], Number(v[5])]
+      if ((sa === '.' || sc === '.') && dateLike(a, b) && dateLike(c, d)) return null
+      return valid(a, b)
     }],
-    // «в 18:00», «к 9:30», «18:00»
-    [word('(?:(?:в|во|к|ко|до|с|со|на)\\s+)?(?<![\\d:.])(\\d{1,2}):(\\d{2})(?![\\d:])'), (v) => valid(Number(v[0]), Number(v[1]))],
-    // «в 15.30» — с точкой только после «в»/«с»: «к 12.11» — дата
-    [word('(?:в|во|с|со)\\s+(\\d{1,2})\\.(\\d{2})(?![\\d.])'), (v) => valid(Number(v[0]), Number(v[1]))],
-    // «в 18 ч», «к 9 часам»
-    [word('(?:в|во|к|ко|до)\\s+(\\d{1,2})\\s*(?:ч|час\\p{L}*)\\.?'), (v) => valid(Number(v[0]), 0)],
+    // «в 18:00», «к 9:30», «18:00», «в 7:30 вечера», «к 18.00»
+    [word(`(${prep}\\s+)?(?<![\\d:.])(\\d{1,2})([:.])(\\d{2})(?![\\d:.])${part}`), (v) => {
+      const [p, h, sep, m] = [v[0], Number(v[1]), v[2], Number(v[3])]
+      // С точкой — только после предлога и не дата («версия 1.10», «к 12.11»)
+      if (sep === '.' && (!p || (dateLike(h, m) && !v[4]))) return null
+      return valid(partOfDay(h, v[4]), m)
+    }],
+    // «в 7 вечера», «в 9 утра», «к 3 часам дня»
+    [word(`(?:в|во|к|ко|до|на)\\s+(\\d{1,2})(?:\\s*(?:ч|час\\p{L}*))?\\s+(утра|дня|вечера|ночи)`), (v) => valid(partOfDay(Number(v[0]), v[1]), 0)],
+    // «в 18 ч», «к 9 часам», «в 18 часов 30 минут»
+    [word('(?:в|во|к|ко|до)\\s+(\\d{1,2})\\s*(?:ч|час\\p{L}*)\\.?(?:\\s*(\\d{1,2})\\s*(?:мин\\p{L}*|м)\\.?)?'), (v) => valid(Number(v[0]), Number(v[1] ?? 0))],
   ]
   for (const [pattern, toMinutes] of patterns) {
     const m = groups(box.title, pattern)
@@ -265,7 +297,7 @@ function findDue(box: { title: string }, inclusive: boolean, weak: { value: bool
   const units = '(?!\\s*(?:литр\\p{L}*|л|кг|г|гр|км|м|мл|ч|час\\p{L}*|мин\\p{L}*|руб\\p{L}*|р|раз\\p{L}*|шт|%)(?![\\p{L}]))'
   const explicitDay = test(box.title, word('(?:сегодня|завтра|послезавтра)'))
   const range = '(?!\\s*(?:-|–|—|до)\\s*\\d{1,2}[.:]\\d{2})'
-  m = explicitDay ? null : groups(box.title, '(?:(до|к|на)\\s+)?(?<![\\p{L}\\d.])(?<!верси[яиюей]\\s)(?<!в\\s)(?<!во\\s)(?<!с\\s)(?<!со\\s)(\\d{1,2})\\.(\\d{2})(?:\\.(\\d{2}|\\d{4}))?(?![\\d.])' + units + range)
+  m = explicitDay ? null : groups(box.title, '(?:(до|к|на|с|со|в|во)\\s+)?(?<![\\p{L}\\d.])(?<!верси[яиюей]\\s)(\\d{1,2})\\.(\\d{2})(?:\\.(\\d{2}|\\d{4}))?(?![\\d.])' + units + range)
   if (m) {
     const date = makeDate(Number(m.values[1]), Number(m.values[2]), m.values[3] ? Number(m.values[3]) : null, today)
     if (date) {
@@ -290,7 +322,7 @@ function findDue(box: { title: string }, inclusive: boolean, weak: { value: bool
     [word('(?:на\\s+)?сегодня'), () => today],
     // «Завтрашний» — срок, только если «сегодня»/«завтра» не сказано прямо:
     // «сегодня посмотреть расписание на завтрашний день» — это на сегодня
-    [word('(?:(?:к|до|на)\\s+)?завтрашн\\p{L}*(?:\\s+день)?'), () => dayOffset(1, now)],
+    [word('(?:(?:к|до|на)\\s+)?завтрашн\\p{L}*(?:\\s+(?:день|дню|дня))?'), () => dayOffset(1, now)],
     [word('через неделю'), () => dayOffset(7, now)],
     [word('через две недели'), () => dayOffset(14, now)],
     [word('через месяц'), () => addMonths(today, 1)],
@@ -411,7 +443,7 @@ export function analyze(raw: string, studyHints: string[] = [], now = new Date()
     let title = trimChars(box.title, ' ,.:;-—')
     if (!title || test(title, '^' + leftovers + '$')) title = text
     const routed = router.route(title, studyHints)
-    tasks = [{ title: capitalizeFirst(title), area: routed.area, dueDate: due, dueTime: due ? time : null, priority, areaMatched: routed.source.kind !== 'fallback', dueIsWeak: weak.value, suggest: routed.suggest }]
+    tasks = [{ title: capitalizeFirst(title), area: routed.area, dueDate: due, dueTime: due ? time : null, priority, areaMatched: routed.source.kind !== 'fallback', dueIsWeak: time == null && weak.value, suggest: routed.suggest }]
   }
   if (forced) return { kind: forced, tasks }
 
@@ -422,7 +454,10 @@ export function analyze(raw: string, studyHints: string[] = [], now = new Date()
   const important = tasks.some((t) => t.priority !== Priority.Normal)
 
   let kind: CaptureKind
-  if (lines.length >= 2 && actionLines === 0 && !areaMatched) kind = 'note'
+  // Есть время («в 10:00 зачёт») — это дела, даже без глаголов
+  const timed = tasks.some((t) => t.dueTime != null)
+  if (timed) kind = 'task'
+  else if (lines.length >= 2 && actionLines === 0 && !areaMatched) kind = 'note'
   else if (hasDue || important || (actionLines > 0 && actionLines * 2 >= lines.length)) kind = 'task'
   else if (lines.length >= 2) kind = 'note'
   else if (areaMatched) kind = 'task'

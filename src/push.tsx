@@ -96,8 +96,20 @@ let lastSent = ''
 let syncing: Promise<void> | null = null
 
 /** Отправить серверу свежее расписание (через пару секунд после правок). */
+let again = false
 function syncReminders(): Promise<void> {
-  if (!syncing) syncing = doSync().catch(() => {}).finally(() => (syncing = null))
+  // Уже отправляем — после неё отправим ещё раз со свежими данными (правка могла прийти посреди отправки)
+  if (syncing) {
+    again = true
+    return syncing
+  }
+  syncing = doSync().catch(() => {}).finally(() => {
+    syncing = null
+    if (again) {
+      again = false
+      syncReminders()
+    }
+  })
   return syncing
 }
 

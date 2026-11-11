@@ -110,8 +110,11 @@ function parseLine(input: string, day: number): ParsedClass {
 
   const range = timeRange.exec(line)
   if (range) {
-    c.startMin = Number(range[1]) * 60 + Number(range[2])
-    c.endMin = Number(range[3]) * 60 + Number(range[4])
+    // «25:00», «9:60» — не время; конец раньше начала — конец посчитаем по звонкам
+    const minutes = (h: string, m: string) => (Number(h) <= 23 && Number(m) <= 59 ? Number(h) * 60 + Number(m) : null)
+    c.startMin = minutes(range[1], range[2])
+    c.endMin = c.startMin == null ? null : minutes(range[3], range[4])
+    if (c.endMin != null && c.endMin <= c.startMin!) c.endMin = null
     line = (line.slice(0, range.index) + ' ' + line.slice(range.index + range[0].length)).trim()
   }
   // Подгруппа — в вид занятия: «Лекция · 1 подгр.» (раньше номера пары: «1 подгруппа: Английский»)
@@ -134,7 +137,7 @@ function parseLine(input: string, day: number): ParsedClass {
   }
   if (c.startMin == null) {
     const start = timeStart.exec(line)
-    if (start) {
+    if (start && Number(start[1]) <= 23 && Number(start[2]) <= 59) {
       c.startMin = Number(start[1]) * 60 + Number(start[2])
       line = line.slice(start[0].length)
     }

@@ -415,10 +415,10 @@ function CellEditor({ day, slot, index, onClose }: { day: number; slot: BellSlot
 
   const save = () => {
     if (invalid) return
-    // Удаляем только пары, которые были видны в выбранном режиме и которые убрали:
-    // «каждую неделю» в клетке с числителем/знаменателем не пропадает молча
+    // Числ./знам.: пары «каждую неделю» в клетке остаются (о них подсказка в редакторе).
+    // «Каждую неделю»: клетка становится одной на обе недели — пары числителя и знаменателя уходят (о них тоже подсказка)
     const entries = split ? [...num, ...den] : every
-    const opened = split ? [...ids(load('numerator')), ...ids(load('denominator'))] : ids(load('every'))
+    const opened = split ? [...ids(load('numerator')), ...ids(load('denominator'))] : inCell.map((c) => c.id)
     const converted = ids(entries).filter((id) => inCell.some((c) => c.id === id))
     store.setCell(day, slot, entries, [...new Set([...opened, ...converted])])
     sheet.close()
@@ -462,6 +462,12 @@ function CellEditor({ day, slot, index, onClose }: { day: number; slot: BellSlot
         setSplit(toSplit)
       }} options={[{ value: 'every', title: 'Каждую неделю' }, { value: 'split', title: 'Числ. / знам.' }]} />
       {!split && editors(every, setEvery, 'every')}
+      {!split && inCell.some((c) => c.parity !== 'every' && !every.some((e) => e.id === c.id)) && (
+        <div class="hint">Уберутся из клетки: {inCell.filter((c) => c.parity !== 'every' && !every.some((e) => e.id === c.id)).map((c) => c.title).join(', ')}</div>
+      )}
+      {split && inCell.some((c) => c.parity === 'every') && (
+        <div class="hint">Останутся каждую неделю: {inCell.filter((c) => c.parity === 'every' && ![...num, ...den].some((e) => e.id === c.id)).map((c) => c.title).join(', ')}</div>
+      )}
       {split && (
         <>
           <div class="label" style={{ margin: 0 }}>Числитель</div>
@@ -539,7 +545,8 @@ export function ScheduleImport({ mode, onClose }: { mode: 'text' | 'ics'; onClos
   const add = () => {
     const chosen = (parsed ?? []).filter((_, i) => !skip.has(i))
     const missingTime = chosen.filter((c) => c.startMin == null).length
-    if (store.weekParity(new Date()) == null && chosen.some((c) => c.parity !== 'every')) store.setCurrentWeek('numerator')
+    // Неделю спрашиваем, только если пары числителя/знаменателя правда добавятся (у них есть время)
+    if (store.weekParity(new Date()) == null && chosen.some((c) => c.parity !== 'every' && c.startMin != null)) store.setCurrentWeek('numerator')
     const n = store.addParsedClasses(chosen, replace)
     showToast(`Добавлено пар: ${n}` + (missingTime ? ` · без времени пропущено: ${missingTime}` : ''))
     sheet.close()

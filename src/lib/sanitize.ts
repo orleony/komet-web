@@ -89,5 +89,8 @@ export function cleanSnapshot(v: unknown): Snapshot | null {
 export function tieKey(v: unknown): string {
   const sort = (x: any): any =>
     Array.isArray(x) ? x.map(sort) : x && typeof x === 'object' ? Object.fromEntries(Object.keys(x).sort().map((k) => [k, sort(x[k])])) : x
-  return JSON.stringify(sort(v))
+  // Оформление заметки (html — только в веб-версии, rich — только на Mac) не участвует:
+  // та же заметка, вернувшаяся с Mac без html, не должна затереть оформление
+  const { html: _html, rich: _rich, ...rest } = (v && typeof v === 'object' ? v : {}) as Record<string, unknown>
+  return JSON.stringify(sort(v && typeof v === 'object' ? rest : v))
 }

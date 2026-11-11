@@ -54,8 +54,13 @@ export function buildReminders(now = new Date()): Reminder[] {
       if (t.dueTime == null) continue
       const area = store.areaOf(t).title
       const lead = p.timedLead
+      const dueAt = at(toDate(t.dueDate)!, t.dueTime)
+      // Задачу поставили меньше чем за lead минут — напоминаем через минуту, пока срок не прошёл
+      const remindAt = at(toDate(t.dueDate)!, t.dueTime - lead)
+      const nowSec = now.getTime() / 1000
+      if (dueAt <= nowSec) continue
       items.push({
-        at: at(toDate(t.dueDate)!, t.dueTime - lead),
+        at: remindAt > nowSec ? remindAt : nowSec + 60,
         title: (lead ? `Через ${lead} мин` : `Сейчас, ${time(t.dueTime)}`) + ` · ${area}`,
         body: t.title,
         tag: `time-${t.id}`,
@@ -67,9 +72,11 @@ export function buildReminders(now = new Date()): Reminder[] {
     for (const t of plan) {
       const due = toDate(t.dueDate)!
       const area = store.areaOf(t).title
-      // У задачи ко времени — время в заголовке и без напоминания «в день»: о ней напомнит «Задачи ко времени»
+      // У задачи ко времени — время в заголовке; «в день» за неё напоминает «Задачи ко времени», если включено
       if (t.dueTime != null) {
         if (p.deadlineWhen !== 'same') items.push({ at: at(due, p.deadlineTime - 24 * 60), title: `Завтра в ${time(t.dueTime)} · ${area}`, body: t.title, tag: `due-${t.id}` })
+        if (p.timed || p.deadlineWhen === 'before') continue
+        items.push({ at: at(due, Math.min(p.deadlineTime, t.dueTime)), title: `Сегодня в ${time(t.dueTime)} · ${area}`, body: t.title, tag: `due-today-${t.id}` })
         continue
       }
       // Заголовок — когда срок и раздел, текст — сама задача
@@ -79,5 +86,10 @@ export function buildReminders(now = new Date()): Reminder[] {
   }
 
   const nowSec = now.getTime() / 1000
-  return items.filter((r) => r.at > nowSec).sort((a, b) => a.at - b.at).slice(0, LIMIT)
+  // Сервер принимает заголовок до 200 и текст до 400 символов — длинная задача не должна ломать отправку
+  return items
+    .filter((r) => r.at > nowSec)
+    .sort((a, b) => a.at - b.at)
+    .slice(0, LIMIT)
+    .map((r) => ({ ...r, title: r.title.slice(0, 200), body: r.body.slice(0, 400) }))
 }
