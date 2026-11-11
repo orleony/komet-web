@@ -15,7 +15,7 @@ export function cleanTask(v: unknown): TaskItem | null {
   return {
     ...o,
     id: o.id, title: str(o.title), details: str(o.details), areaID: str(o.areaID, 'none') || 'none',
-    dueDate: optNum(o.dueDate), isDone: !!o.isDone, doneAt: optNum(o.doneAt),
+    dueDate: optNum(o.dueDate), dueTime: (() => { const t = optNum(o.dueTime); return t != null && t >= 0 && t < 1440 ? Math.round(t) : null })(), isDone: !!o.isDone, doneAt: optNum(o.doneAt),
     createdAt: num(o.createdAt), updatedAt: num(o.updatedAt), deletedAt: optNum(o.deletedAt), trashedAt: optNum(o.trashedAt),
     priority: p === 1 || p === 2 ? p : 0,
   }

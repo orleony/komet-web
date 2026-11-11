@@ -202,6 +202,10 @@ export function NotificationsCard() {
           <div class="row"><span class="hint grow">Во сколько</span><TimeInput value={p.deadlineTime} onChange={(m) => store.setPref('deadlineTime', m)} /></div>
         </>
       )}
+      <Toggle on={p.timed} onChange={(v) => store.setPref('timed', v)} title="Задачи ко времени" subtitle="«Завтра в 18:00 сдать лабу» — напомнить заранее" />
+      {p.timed && (
+        <Segments value={p.timedLead} onChange={(v) => store.setPref('timedLead', v)} options={[0, 15, 30, 60].map((m) => ({ value: m, title: m ? `${m} мин` : 'В срок' }))} />
+      )}
     </div>
   )
 }

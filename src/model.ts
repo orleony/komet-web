@@ -34,6 +34,8 @@ export interface TaskItem {
   details: string
   areaID: string
   dueDate?: number | null
+  /** Время в минутах от полуночи («в 18:00» → 1080); null — весь день. Дата — в dueDate. */
+  dueTime?: number | null
   isDone: boolean
   doneAt?: number | null
   createdAt: number

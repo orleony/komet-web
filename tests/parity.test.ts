@@ -25,7 +25,7 @@ describe('как на Mac', () => {
       const a = analyze(e.phrase, [], now)
       expect(clean(e.phrase)).toBe(e.clean)
       expect(a.kind).toBe(e.kind)
-      expect(a.tasks.map((t) => ({ title: t.title, area: t.area.id, due: t.dueDate ? daysLeft(t.dueDate, now) : -999, weekday: t.dueDate ? isoWeekday(t.dueDate) : 0, priority: t.priority, weak: t.dueIsWeak })))
+      expect(a.tasks.map((t) => ({ title: t.title, area: t.area.id, due: t.dueDate ? daysLeft(t.dueDate, now) : -999, weekday: t.dueDate ? isoWeekday(t.dueDate) : 0, time: t.dueTime ?? -1, priority: t.priority, weak: t.dueIsWeak })))
         .toEqual(e.tasks)
     })
   }

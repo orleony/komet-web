@@ -1,5 +1,5 @@
 {
-  "generated" : 1793893419.27332,
+  "generated" : 1794398025.7980959,
   "results" : [
     {
       "clean" : "Сдать лабу по матанализу до пятницы.",
@@ -8,8 +8,9 @@
       "tasks" : [
         {
           "area" : "study",
-          "due" : 0,
+          "due" : 1,
           "priority" : 0,
+          "time" : -1,
           "title" : "Сдать лабу по матанализу",
           "weak" : false,
           "weekday" : 4
@@ -25,9 +26,10 @@
           "area" : "music",
           "due" : 1,
           "priority" : 1,
+          "time" : -1,
           "title" : "Свести бит",
           "weak" : false,
-          "weekday" : 5
+          "weekday" : 4
         }
       ]
     },
@@ -40,6 +42,7 @@
           "area" : "personal",
           "due" : -999,
           "priority" : 0,
+          "time" : -1,
           "title" : "Купить хлеб",
           "weak" : false,
           "weekday" : 0
@@ -55,9 +58,10 @@
           "area" : "personal",
           "due" : 0,
           "priority" : 0,
+          "time" : -1,
           "title" : "Был отличный день",
           "weak" : true,
-          "weekday" : 4
+          "weekday" : 3
         }
       ]
     },
@@ -70,6 +74,7 @@
           "area" : "personal",
           "due" : -999,
           "priority" : 0,
+          "time" : -1,
           "title" : "Купи молоко",
           "weak" : false,
           "weekday" : 0
@@ -78,6 +83,7 @@
           "area" : "personal",
           "due" : -999,
           "priority" : 0,
+          "time" : -1,
           "title" : "Позвони маме",
           "weak" : false,
           "weekday" : 0
@@ -86,16 +92,17 @@
     },
     {
       "clean" : "В 15.30 созвон с Димой.",
-      "kind" : "note",
+      "kind" : "task",
       "phrase" : "в 15.30 созвон с Димой",
       "tasks" : [
         {
           "area" : "personal",
-          "due" : -999,
+          "due" : 0,
           "priority" : 0,
-          "title" : "Созвон с Димой в 15.30",
+          "time" : 930,
+          "title" : "Созвон с Димой",
           "weak" : false,
-          "weekday" : 0
+          "weekday" : 3
         }
       ]
     },
@@ -108,6 +115,7 @@
           "area" : "personal",
           "due" : -999,
           "priority" : 0,
+          "time" : -1,
           "title" : "Купить 1.5 литра молока",
           "weak" : false,
           "weekday" : 0
@@ -121,8 +129,9 @@
       "tasks" : [
         {
           "area" : "study",
-          "due" : 7,
+          "due" : 1,
           "priority" : 0,
+          "time" : -1,
           "title" : "Сдать реферат",
           "weak" : false,
           "weekday" : 4
@@ -138,9 +147,10 @@
           "area" : "study",
           "due" : 0,
           "priority" : 2,
+          "time" : -1,
           "title" : "Сдать доклад",
           "weak" : false,
-          "weekday" : 4
+          "weekday" : 3
         }
       ]
     },
@@ -153,6 +163,7 @@
           "area" : "personal",
           "due" : -999,
           "priority" : 0,
+          "time" : -1,
           "title" : "Это, просто подумать",
           "weak" : false,
           "weekday" : 0
@@ -168,6 +179,7 @@
           "area" : "music",
           "due" : -999,
           "priority" : 0,
+          "time" : -1,
           "title" : "Написать текст для припева",
           "weak" : false,
           "weekday" : 0
@@ -183,6 +195,7 @@
           "area" : "study",
           "due" : -999,
           "priority" : 0,
+          "time" : -1,
           "title" : "Лаба Вилисова",
           "weak" : false,
           "weekday" : 0
@@ -198,9 +211,10 @@
           "area" : "study",
           "due" : 2,
           "priority" : 0,
+          "time" : -1,
           "title" : "Сделать домашку",
           "weak" : false,
-          "weekday" : 6
+          "weekday" : 5
         }
       ]
     },
@@ -213,9 +227,10 @@
           "area" : "study",
           "due" : 3,
           "priority" : 0,
+          "time" : -1,
           "title" : "Экзамен по философии",
           "weak" : false,
-          "weekday" : 7
+          "weekday" : 6
         }
       ]
     },
@@ -226,8 +241,9 @@
       "tasks" : [
         {
           "area" : "study",
-          "due" : 30,
+          "due" : 24,
           "priority" : 0,
+          "time" : -1,
           "title" : "Подготовить курсовую",
           "weak" : false,
           "weekday" : 6
@@ -241,8 +257,9 @@
       "tasks" : [
         {
           "area" : "music",
-          "due" : 2,
+          "due" : 3,
           "priority" : 0,
+          "time" : -1,
           "title" : "Записать вокал",
           "weak" : false,
           "weekday" : 6
@@ -256,8 +273,9 @@
       "tasks" : [
         {
           "area" : "personal",
-          "due" : 10,
+          "due" : 11,
           "priority" : 0,
+          "time" : -1,
           "title" : "Сходить к стоматологу",
           "weak" : false,
           "weekday" : 7
@@ -273,6 +291,7 @@
           "area" : "music",
           "due" : -999,
           "priority" : 0,
+          "time" : -1,
           "title" : "Трек про осень",
           "weak" : false,
           "weekday" : 0
@@ -288,6 +307,7 @@
           "area" : "personal",
           "due" : -999,
           "priority" : 0,
+          "time" : -1,
           "title" : "Позвонить в деканат",
           "weak" : false,
           "weekday" : 0
@@ -303,6 +323,7 @@
           "area" : "personal",
           "due" : -999,
           "priority" : 0,
+          "time" : -1,
           "title" : "Пару дней отдохнуть",
           "weak" : false,
           "weekday" : 0
@@ -318,9 +339,10 @@
           "area" : "study",
           "due" : 1,
           "priority" : 0,
-          "title" : "Пара в 9:00",
+          "time" : 540,
+          "title" : "Пара",
           "weak" : false,
-          "weekday" : 5
+          "weekday" : 4
         }
       ]
     },
@@ -333,9 +355,10 @@
           "area" : "personal",
           "due" : 7,
           "priority" : 0,
+          "time" : -1,
           "title" : "Оплатить интернет",
           "weak" : false,
-          "weekday" : 4
+          "weekday" : 3
         }
       ]
     },
@@ -346,8 +369,9 @@
       "tasks" : [
         {
           "area" : "personal",
-          "due" : 6,
+          "due" : 7,
           "priority" : 0,
+          "time" : -1,
           "title" : "Встреча с другом",
           "weak" : false,
           "weekday" : 3
@@ -363,6 +387,7 @@
           "area" : "personal",
           "due" : -999,
           "priority" : 0,
+          "time" : -1,
           "title" : "Мысли о жизни",
           "weak" : false,
           "weekday" : 0
@@ -371,6 +396,7 @@
           "area" : "personal",
           "due" : -999,
           "priority" : 0,
+          "time" : -1,
           "title" : "Всё хорошо",
           "weak" : false,
           "weekday" : 0
@@ -379,6 +405,7 @@
           "area" : "personal",
           "due" : -999,
           "priority" : 0,
+          "time" : -1,
           "title" : "Весна скоро",
           "weak" : false,
           "weekday" : 0
@@ -394,6 +421,7 @@
           "area" : "personal",
           "due" : -999,
           "priority" : 0,
+          "time" : -1,
           "title" : "Купить струны",
           "weak" : false,
           "weekday" : 0
@@ -402,6 +430,7 @@
           "area" : "music",
           "due" : -999,
           "priority" : 0,
+          "time" : -1,
           "title" : "Свести демку",
           "weak" : false,
           "weekday" : 0
@@ -410,6 +439,7 @@
           "area" : "study",
           "due" : -999,
           "priority" : 0,
+          "time" : -1,
           "title" : "Сдать зачёт",
           "weak" : false,
           "weekday" : 0
@@ -423,8 +453,9 @@
       "tasks" : [
         {
           "area" : "study",
-          "due" : 3,
+          "due" : 4,
           "priority" : 0,
+          "time" : -1,
           "title" : "Прочитать главу",
           "weak" : false,
           "weekday" : 7
@@ -440,6 +471,7 @@
           "area" : "music",
           "due" : -999,
           "priority" : 0,
+          "time" : -1,
           "title" : "Сыграйте на гитаре вечером",
           "weak" : false,
           "weekday" : 0
@@ -455,6 +487,7 @@
           "area" : "personal",
           "due" : -999,
           "priority" : 1,
+          "time" : -1,
           "title" : "Позвонить маме",
           "weak" : false,
           "weekday" : 0
@@ -468,8 +501,9 @@
       "tasks" : [
         {
           "area" : "study",
-          "due" : 7,
+          "due" : 1,
           "priority" : 2,
+          "time" : -1,
           "title" : "Доделать сайт",
           "weak" : false,
           "weekday" : 4
@@ -483,11 +517,12 @@
       "tasks" : [
         {
           "area" : "study",
-          "due" : 5,
+          "due" : 364,
           "priority" : 0,
+          "time" : -1,
           "title" : "Сессия",
           "weak" : false,
-          "weekday" : 2
+          "weekday" : 3
         }
       ]
     },
@@ -498,8 +533,9 @@
       "tasks" : [
         {
           "area" : "study",
-          "due" : 30,
+          "due" : 24,
           "priority" : 0,
+          "time" : -1,
           "title" : "Сдать долг",
           "weak" : false,
           "weekday" : 6
@@ -515,6 +551,7 @@
           "area" : "personal",
           "due" : -999,
           "priority" : 0,
+          "time" : -1,
           "title" : "Через 100500 дней",
           "weak" : false,
           "weekday" : 0
@@ -530,6 +567,7 @@
           "area" : "personal",
           "due" : -999,
           "priority" : 0,
+          "time" : -1,
           "title" : "Версия 2.5 вышла",
           "weak" : false,
           "weekday" : 0
@@ -545,6 +583,7 @@
           "area" : "personal",
           "due" : -999,
           "priority" : 0,
+          "time" : -1,
           "title" : "Спать",
           "weak" : false,
           "weekday" : 0
@@ -560,6 +599,7 @@
           "area" : "personal",
           "due" : -999,
           "priority" : 0,
+          "time" : -1,
           "title" : "Э-э купить носки",
           "weak" : false,
           "weekday" : 0
@@ -575,6 +615,7 @@
           "area" : "personal",
           "due" : -999,
           "priority" : 0,
+          "time" : -1,
           "title" : "Проверить почту",
           "weak" : false,
           "weekday" : 0
@@ -583,6 +624,7 @@
           "area" : "personal",
           "due" : -999,
           "priority" : 0,
+          "time" : -1,
           "title" : "Сходить в зал",
           "weak" : false,
           "weekday" : 0
@@ -598,6 +640,7 @@
           "area" : "personal",
           "due" : -999,
           "priority" : 0,
+          "time" : -1,
           "title" : "Выключить утюг",
           "weak" : false,
           "weekday" : 0
@@ -611,8 +654,9 @@
       "tasks" : [
         {
           "area" : "music",
-          "due" : 3,
+          "due" : 4,
           "priority" : 0,
+          "time" : -1,
           "title" : "Треки свести и отмастерить",
           "weak" : false,
           "weekday" : 7
@@ -628,9 +672,10 @@
           "area" : "personal",
           "due" : 0,
           "priority" : 0,
+          "time" : -1,
           "title" : "Посмотреть фильм",
           "weak" : true,
-          "weekday" : 4
+          "weekday" : 3
         }
       ]
     },
@@ -643,6 +688,7 @@
           "area" : "personal",
           "due" : -999,
           "priority" : 0,
+          "time" : -1,
           "title" : "Записаться в спортзал",
           "weak" : false,
           "weekday" : 0
@@ -658,9 +704,10 @@
           "area" : "personal",
           "due" : 0,
           "priority" : 0,
+          "time" : -1,
           "title" : "Посмотреть расписание элок на завтрашний день",
           "weak" : true,
-          "weekday" : 4
+          "weekday" : 3
         }
       ]
     },
@@ -673,9 +720,10 @@
           "area" : "study",
           "due" : 1,
           "priority" : 0,
+          "time" : -1,
           "title" : "Подготовить презентацию",
           "weak" : false,
-          "weekday" : 5
+          "weekday" : 4
         }
       ]
     },
@@ -688,9 +736,10 @@
           "area" : "study",
           "due" : 1,
           "priority" : 0,
+          "time" : -1,
           "title" : "Сдать отчёт за сегодняшний день",
           "weak" : false,
-          "weekday" : 5
+          "weekday" : 4
         }
       ]
     },
@@ -703,9 +752,10 @@
           "area" : "personal",
           "due" : 1,
           "priority" : 0,
+          "time" : -1,
           "title" : "Купить продукты",
           "weak" : false,
-          "weekday" : 5
+          "weekday" : 4
         }
       ]
     },
@@ -718,6 +768,7 @@
           "area" : "personal",
           "due" : -999,
           "priority" : 0,
+          "time" : -1,
           "title" : "Купить хлеб",
           "weak" : false,
           "weekday" : 0
@@ -733,6 +784,7 @@
           "area" : "personal",
           "due" : -999,
           "priority" : 0,
+          "time" : -1,
           "title" : "Купить хлеб",
           "weak" : false,
           "weekday" : 0
@@ -748,9 +800,10 @@
           "area" : "study",
           "due" : 0,
           "priority" : 2,
+          "time" : -1,
           "title" : "Сдать",
           "weak" : false,
-          "weekday" : 4
+          "weekday" : 3
         }
       ]
     },
@@ -763,6 +816,7 @@
           "area" : "personal",
           "due" : -999,
           "priority" : 0,
+          "time" : -1,
           "title" : "Позвонить маме",
           "weak" : false,
           "weekday" : 0
@@ -778,6 +832,7 @@
           "area" : "study",
           "due" : -999,
           "priority" : 1,
+          "time" : -1,
           "title" : "Сдать лабу",
           "weak" : false,
           "weekday" : 0
@@ -793,6 +848,7 @@
           "area" : "study",
           "due" : -999,
           "priority" : 0,
+          "time" : -1,
           "title" : "Сдать лабу в ауд. 301",
           "weak" : false,
           "weekday" : 0
@@ -808,6 +864,7 @@
           "area" : "personal",
           "due" : -999,
           "priority" : 0,
+          "time" : -1,
           "title" : "Сходить на ул. Ленина 5",
           "weak" : false,
           "weekday" : 0
@@ -823,6 +880,7 @@
           "area" : "study",
           "due" : -999,
           "priority" : 0,
+          "time" : -1,
           "title" : "Т.е. сделать дз",
           "weak" : false,
           "weekday" : 0
@@ -838,9 +896,10 @@
           "area" : "personal",
           "due" : 1,
           "priority" : 0,
+          "time" : -1,
           "title" : "Отнести книгу Иванову И. И",
           "weak" : false,
-          "weekday" : 5
+          "weekday" : 4
         }
       ]
     },
@@ -853,9 +912,10 @@
           "area" : "study",
           "due" : 1,
           "priority" : 0,
+          "time" : -1,
           "title" : "Пара 10.10",
           "weak" : false,
-          "weekday" : 5
+          "weekday" : 4
         }
       ]
     },
@@ -866,11 +926,12 @@
       "tasks" : [
         {
           "area" : "study",
-          "due" : -999,
+          "due" : 1,
           "priority" : 0,
-          "title" : "Пара с 10.10 до 11.45",
+          "time" : 610,
+          "title" : "Пара",
           "weak" : false,
-          "weekday" : 0
+          "weekday" : 4
         }
       ]
     },
@@ -881,8 +942,9 @@
       "tasks" : [
         {
           "area" : "study",
-          "due" : 7,
+          "due" : 1,
           "priority" : 0,
+          "time" : -1,
           "title" : "Сдать отчёт",
           "weak" : false,
           "weekday" : 4
@@ -898,6 +960,7 @@
           "area" : "study",
           "due" : -999,
           "priority" : 0,
+          "time" : -1,
           "title" : "Написать в общем чате про пару",
           "weak" : false,
           "weekday" : 0
@@ -913,6 +976,7 @@
           "area" : "personal",
           "due" : -999,
           "priority" : 0,
+          "time" : -1,
           "title" : "Купить молоко",
           "weak" : false,
           "weekday" : 0
@@ -926,11 +990,12 @@
       "tasks" : [
         {
           "area" : "personal",
-          "due" : 5,
+          "due" : 364,
           "priority" : 0,
+          "time" : -1,
           "title" : "Перенести",
           "weak" : false,
-          "weekday" : 2
+          "weekday" : 3
         }
       ]
     },
@@ -941,8 +1006,9 @@
       "tasks" : [
         {
           "area" : "personal",
-          "due" : 1,
+          "due" : 2,
           "priority" : 0,
+          "time" : -1,
           "title" : "Созвон",
           "weak" : false,
           "weekday" : 5
@@ -958,9 +1024,10 @@
           "area" : "personal",
           "due" : 2,
           "priority" : 0,
+          "time" : -1,
           "title" : "Позвонить",
           "weak" : false,
-          "weekday" : 6
+          "weekday" : 5
         }
       ]
     },
@@ -973,9 +1040,10 @@
           "area" : "personal",
           "due" : 61,
           "priority" : 0,
+          "time" : -1,
           "title" : "Оформить визу",
           "weak" : false,
-          "weekday" : 2
+          "weekday" : 1
         }
       ]
     },
@@ -986,8 +1054,9 @@
       "tasks" : [
         {
           "area" : "personal",
-          "due" : 25,
+          "due" : 19,
           "priority" : 0,
+          "time" : -1,
           "title" : "Оплатить",
           "weak" : false,
           "weekday" : 1
@@ -1001,8 +1070,9 @@
       "tasks" : [
         {
           "area" : "personal",
-          "due" : 2,
+          "due" : 3,
           "priority" : 0,
+          "time" : -1,
           "title" : "Убраться",
           "weak" : false,
           "weekday" : 6
@@ -1018,6 +1088,7 @@
           "area" : "personal",
           "due" : -999,
           "priority" : 0,
+          "time" : -1,
           "title" : "Купить молоко",
           "weak" : false,
           "weekday" : 0
@@ -1026,6 +1097,7 @@
           "area" : "personal",
           "due" : -999,
           "priority" : 0,
+          "time" : -1,
           "title" : "Позвонить маме",
           "weak" : false,
           "weekday" : 0
@@ -1041,6 +1113,7 @@
           "area" : "study",
           "due" : -999,
           "priority" : 1,
+          "time" : -1,
           "title" : "Сдать, лабу",
           "weak" : false,
           "weekday" : 0
@@ -1056,6 +1129,7 @@
           "area" : "music",
           "due" : -999,
           "priority" : 0,
+          "time" : -1,
           "title" : "Свести бит для битвы",
           "weak" : false,
           "weekday" : 0
@@ -1071,6 +1145,7 @@
           "area" : "personal",
           "due" : -999,
           "priority" : 0,
+          "time" : -1,
           "title" : "Сходить в зал",
           "weak" : false,
           "weekday" : 0
@@ -1086,6 +1161,7 @@
           "area" : "personal",
           "due" : -999,
           "priority" : 0,
+          "time" : -1,
           "title" : "Съездить на залив",
           "weak" : false,
           "weekday" : 0
@@ -1101,9 +1177,10 @@
           "area" : "study",
           "due" : 1,
           "priority" : 2,
-          "title" : "Сдать лабу в 18:00",
+          "time" : 1080,
+          "title" : "Сдать лабу",
           "weak" : false,
-          "weekday" : 5
+          "weekday" : 4
         }
       ]
     },
@@ -1114,11 +1191,12 @@
       "tasks" : [
         {
           "area" : "music",
-          "due" : -999,
+          "due" : 0,
           "priority" : 0,
-          "title" : "Прийти на студию к 18:30",
+          "time" : 1110,
+          "title" : "Прийти на студию",
           "weak" : false,
-          "weekday" : 0
+          "weekday" : 3
         }
       ]
     },
@@ -1129,8 +1207,9 @@
       "tasks" : [
         {
           "area" : "study",
-          "due" : 5,
+          "due" : 6,
           "priority" : 0,
+          "time" : -1,
           "title" : "Семинар",
           "weak" : false,
           "weekday" : 2
@@ -1146,6 +1225,7 @@
           "area" : "personal",
           "due" : -999,
           "priority" : 0,
+          "time" : -1,
           "title" : "Купить пару носков",
           "weak" : false,
           "weekday" : 0
@@ -1161,6 +1241,7 @@
           "area" : "study",
           "due" : -999,
           "priority" : 0,
+          "time" : -1,
           "title" : "Пропустить пару по матану",
           "weak" : false,
           "weekday" : 0
@@ -1176,6 +1257,7 @@
           "area" : "music",
           "due" : -999,
           "priority" : 0,
+          "time" : -1,
           "title" : "Купить билеты на концерт",
           "weak" : false,
           "weekday" : 0
@@ -1191,6 +1273,7 @@
           "area" : "music",
           "due" : -999,
           "priority" : 0,
+          "time" : -1,
           "title" : "Поиграть на гитаре",
           "weak" : false,
           "weekday" : 0
@@ -1214,6 +1297,7 @@
           "area" : "personal",
           "due" : -999,
           "priority" : 0,
+          "time" : -1,
           "title" : "5км пробежать",
           "weak" : false,
           "weekday" : 0
@@ -1229,6 +1313,7 @@
           "area" : "personal",
           "due" : -999,
           "priority" : 0,
+          "time" : -1,
           "title" : "100 отжиманий",
           "weak" : false,
           "weekday" : 0
@@ -1242,8 +1327,9 @@
       "tasks" : [
         {
           "area" : "personal",
-          "due" : 481,
+          "due" : 475,
           "priority" : 0,
+          "time" : -1,
           "title" : "День рождения",
           "weak" : false,
           "weekday" : 2
@@ -1259,9 +1345,10 @@
           "area" : "personal",
           "due" : 1,
           "priority" : 0,
+          "time" : -1,
           "title" : "Завтра на",
           "weak" : false,
-          "weekday" : 5
+          "weekday" : 4
         }
       ]
     },
@@ -1274,6 +1361,7 @@
           "area" : "personal",
           "due" : -999,
           "priority" : 0,
+          "time" : -1,
           "title" : "Позвонить маме",
           "weak" : false,
           "weekday" : 0
@@ -1289,6 +1377,7 @@
           "area" : "music",
           "due" : -999,
           "priority" : 0,
+          "time" : -1,
           "title" : "Версия 1.10 релиза",
           "weak" : false,
           "weekday" : 0
@@ -1304,6 +1393,7 @@
           "area" : "music",
           "due" : -999,
           "priority" : 0,
+          "time" : -1,
           "title" : "Репетиция с группой",
           "weak" : false,
           "weekday" : 0
@@ -1319,6 +1409,7 @@
           "area" : "study",
           "due" : -999,
           "priority" : 0,
+          "time" : -1,
           "title" : "Пару отменили",
           "weak" : false,
           "weekday" : 0
@@ -1334,9 +1425,10 @@
           "area" : "study",
           "due" : 1,
           "priority" : 0,
+          "time" : -1,
           "title" : "Пару перенесли на среду",
           "weak" : false,
-          "weekday" : 5
+          "weekday" : 4
         }
       ]
     },
@@ -1347,34 +1439,37 @@
       "tasks" : [
         {
           "area" : "study",
-          "due" : -999,
+          "due" : 0,
           "priority" : 0,
-          "title" : "Сдать лабу в 18:00",
+          "time" : 1080,
+          "title" : "Сдать лабу",
           "weak" : false,
-          "weekday" : 0
+          "weekday" : 3
         },
         {
           "area" : "personal",
-          "due" : -999,
+          "due" : 0,
           "priority" : 0,
-          "title" : "Пойти в зал в 19:00",
+          "time" : 1140,
+          "title" : "Пойти в зал",
           "weak" : false,
-          "weekday" : 0
+          "weekday" : 3
         }
       ]
     },
     {
       "clean" : "В 18:00 и.",
-      "kind" : "note",
+      "kind" : "task",
       "phrase" : "в 18:00 и",
       "tasks" : [
         {
           "area" : "personal",
-          "due" : -999,
+          "due" : 0,
           "priority" : 0,
+          "time" : 1080,
           "title" : "В 18:00 и",
           "weak" : false,
-          "weekday" : 0
+          "weekday" : 3
         }
       ]
     },
@@ -1385,8 +1480,9 @@
       "tasks" : [
         {
           "area" : "study",
-          "due" : 7,
+          "due" : 8,
           "priority" : 0,
+          "time" : -1,
           "title" : "Сдать курсовую",
           "weak" : false,
           "weekday" : 4
@@ -1402,6 +1498,7 @@
           "area" : "personal",
           "due" : -999,
           "priority" : 0,
+          "time" : -1,
           "title" : "Привет",
           "weak" : false,
           "weekday" : 0
@@ -1410,6 +1507,7 @@
           "area" : "personal",
           "due" : -999,
           "priority" : 0,
+          "time" : -1,
           "title" : "Как дела",
           "weak" : false,
           "weekday" : 0
@@ -1425,6 +1523,7 @@
           "area" : "personal",
           "due" : -999,
           "priority" : 0,
+          "time" : -1,
           "title" : "Купить молоко",
           "weak" : false,
           "weekday" : 0
@@ -1433,6 +1532,7 @@
           "area" : "personal",
           "due" : -999,
           "priority" : 0,
+          "time" : -1,
           "title" : "Позвонить маме",
           "weak" : false,
           "weekday" : 0
@@ -1448,9 +1548,106 @@
           "area" : "study",
           "due" : -999,
           "priority" : 0,
+          "time" : -1,
           "title" : "Т.е. надо сдать лабу",
           "weak" : false,
           "weekday" : 0
+        }
+      ]
+    },
+    {
+      "clean" : "В 7 вечера позвонить маме.",
+      "kind" : "task",
+      "phrase" : "в 7 вечера позвонить маме",
+      "tasks" : [
+        {
+          "area" : "personal",
+          "due" : 0,
+          "priority" : 0,
+          "time" : 1140,
+          "title" : "Позвонить маме",
+          "weak" : false,
+          "weekday" : 3
+        }
+      ]
+    },
+    {
+      "clean" : "Сдать курсовую к 9 часам.",
+      "kind" : "task",
+      "phrase" : "сдать курсовую к 9 часам",
+      "tasks" : [
+        {
+          "area" : "study",
+          "due" : 1,
+          "priority" : 0,
+          "time" : 540,
+          "title" : "Сдать курсовую",
+          "weak" : false,
+          "weekday" : 4
+        }
+      ]
+    },
+    {
+      "clean" : "Послезавтра в 15.30 созвон.",
+      "kind" : "task",
+      "phrase" : "послезавтра в 15.30 созвон",
+      "tasks" : [
+        {
+          "area" : "personal",
+          "due" : 2,
+          "priority" : 0,
+          "time" : 930,
+          "title" : "Созвон",
+          "weak" : false,
+          "weekday" : 5
+        }
+      ]
+    },
+    {
+      "clean" : "До 12.05 сдать.",
+      "kind" : "task",
+      "phrase" : "до 12.05 сдать",
+      "tasks" : [
+        {
+          "area" : "study",
+          "due" : 181,
+          "priority" : 0,
+          "time" : -1,
+          "title" : "Сдать",
+          "weak" : false,
+          "weekday" : 2
+        }
+      ]
+    },
+    {
+      "clean" : "Встреча с 14:00 до 15:30.",
+      "kind" : "task",
+      "phrase" : "встреча с 14:00 до 15:30",
+      "tasks" : [
+        {
+          "area" : "personal",
+          "due" : 1,
+          "priority" : 0,
+          "time" : 840,
+          "title" : "Встреча",
+          "weak" : false,
+          "weekday" : 4
+        }
+      ]
+    },
+    {
+      "clean" : "В 18 ч тренировка.",
+      "kind" : "task",
+      "phrase" : "в 18 ч тренировка",
+      "tasks" : [
+        {
+          "area" : "personal",
+          "due" : 0,
+          "priority" : 0,
+          "time" : 1080,
+          "title" : "Тренировка",
+          "weak" : false,
+          "weekday" : 3
         }
       ]
     }

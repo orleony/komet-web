@@ -15,6 +15,7 @@ for p in phrases {
                 "tasks": a.tasks.map { ["title": $0.title, "area": $0.area.id,
                                         "due": $0.dueDate.map { Dates.daysLeft($0) } ?? -999,
                                         "weekday": $0.dueDate.map { Dates.isoWeekday($0) } ?? 0,
+                                        "time": $0.dueTime ?? -1,
                                         "priority": $0.priority.rawValue, "weak": $0.dueIsWeak] }])
 }
 let wrapped: [String: Any] = ["generated": Date().timeIntervalSince1970, "timeZone": TimeZone.current.identifier, "results": out]

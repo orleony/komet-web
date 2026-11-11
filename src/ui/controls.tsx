@@ -112,7 +112,15 @@ export function Sheet(props: { title: string; onClose: () => void; closing?: boo
 }
 
 /** Срок с подсветкой срочности: чем ближе дата, тем «горячее» цвет. */
-export function describeDue(date: Date, isDone = false): { text: string; color: string } {
+export function describeDue(date: Date, isDone = false, time: number | null = null): { text: string; color: string } {
+  const d = describeDay(date, isDone)
+  // Задача ко времени: «сегодня · 18:00»
+  return time == null ? d : { ...d, text: `${d.text} · ${clock(time)}` }
+}
+
+const clock = (m: number) => `${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')}`
+
+function describeDay(date: Date, isDone: boolean): { text: string; color: string } {
   if (isDone) return { text: relativeDay(date), color: 'var(--secondary)' }
   const days = daysLeft(date)
   const weekday = weekdayShort[isoWeekday(date) - 1].toLowerCase()

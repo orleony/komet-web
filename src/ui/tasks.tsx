@@ -39,7 +39,7 @@ export function TaskRow({ task }: { task: TaskItem }) {
   const area = store.areaOf(task)
   const color = areaColor(area)
   const due = toDate(task.dueDate)
-  const info = due ? describeDue(due, task.isDone) : null
+  const info = due ? describeDue(due, task.isDone, task.dueTime ?? null) : null
   return (
     <div class={'task' + (checking ? ' checking' : '')}>
       <button class={'check' + (done ? ' on' : '')} onClick={toggle} aria-label="Готово">
@@ -91,12 +91,13 @@ export function TaskEditor({ task: opened, onClose }: { task: TaskItem; onClose:
   const [details, setDetails] = useState(task.details)
   const [areaID, setAreaID] = useState(task.areaID)
   const [due, setDue] = useState<Date | null>(toDate(task.dueDate))
+  const [time, setTime] = useState<number | null>(task.dueTime ?? null)
   const [priority, setPriority] = useState(task.priority)
 
   const save = () => {
     if (!title.trim()) return
     // Название — одной строкой (Enter в поле ничего не ломает)
-    store.saveTask({ ...task, title: title.replace(/\s*\n+\s*/g, ' ').trim(), details, areaID, dueDate: toSec(due), priority })
+    store.saveTask({ ...task, title: title.replace(/\s*\n+\s*/g, ' ').trim(), details, areaID, dueDate: toSec(due), dueTime: due ? time : null, priority })
     sheet.close()
   }
 
@@ -122,8 +123,16 @@ export function TaskEditor({ task: opened, onClose }: { task: TaskItem; onClose:
         <div class="label">Срок</div>
         <div class="row">
           <div class="field grow"><input type="date" value={dateInput(due)} onInput={(e) => setDue(fromInput(e.currentTarget.value))} /></div>
-          {due && <button class="btn-text" onClick={() => setDue(null)}>Убрать</button>}
+          {due && <button class="btn-text" onClick={() => { setDue(null); setTime(null) }}>Убрать</button>}
         </div>
+        {due && (
+          // Ко времени — необязательно: без времени задача на весь день
+          <div class="row" style={{ marginTop: 8 }}>
+            <div class="field grow"><input type="time" aria-label="Время" value={time == null ? '' : `${String(Math.floor(time / 60)).padStart(2, '0')}:${String(time % 60).padStart(2, '0')}`}
+              onInput={(e) => { const [h, m] = e.currentTarget.value.split(':').map(Number); setTime(Number.isFinite(h) && Number.isFinite(m) ? h * 60 + m : null) }} /></div>
+            {time != null ? <button class="btn-text" onClick={() => setTime(null)}>Весь день</button> : <span class="hint">Без времени — весь день</span>}
+          </div>
+        )}
         <div class="row wrap" style={{ marginTop: 8 }}>
           {duePresets.slice(1).map((p) => (
             <button key={p.id} class="chip" style={{ background: 'var(--raised)' }} onClick={() => setDue(p.date())}>{p.title}</button>
@@ -150,7 +159,7 @@ export function AddTaskBar({ areaID }: { areaID: string }) {
     // Срок и важность из самого текста, если сказано («сдать лабу до пятницы !!»)
     const parsed = analyze(text, store.studyHints()).tasks[0]
     const due = duePresets.find((p) => p.id === preset)!.date() ?? parsed?.dueDate ?? null
-    store.addTask(parsed?.title ?? text, areaID, due, parsed?.priority ?? Priority.Normal)
+    store.addTask(parsed?.title ?? text, areaID, due, parsed?.priority ?? Priority.Normal, due ? parsed?.dueTime ?? null : null)
     setText('')
   }
   return (
@@ -191,7 +200,7 @@ export function SmartCapture() {
     } else {
       if (!analysis.tasks.length) return
       for (const t of analysis.tasks) {
-        store.addTask(t.title, areaOverride ?? t.area.id, t.dueDate, t.priority)
+        store.addTask(t.title, areaOverride ?? t.area.id, t.dueDate, t.priority, t.dueTime)
       }
       showToast(analysis.tasks.length > 1 ? `Добавлено задач: ${analysis.tasks.length}` : 'Задача добавлена')
     }
@@ -232,7 +241,7 @@ export function SmartCapture() {
                   <Check size={16} color="var(--secondary)" />
                   {t.priority !== Priority.Normal && <span class="prio" style={{ color: priorityColor[t.priority] }}>{t.priority === Priority.Urgent ? '!!!' : '!!'}</span>}
                   <span class="pill" style={{ color: c, background: tint(c, 0.16) }}>{t.title}</span>
-                  {t.dueDate && <span class="due" style={{ color: describeDue(t.dueDate).color }}>{describeDue(t.dueDate).text}</span>}
+                  {t.dueDate && <span class="due" style={{ color: describeDue(t.dueDate, false, t.dueTime).color }}>{describeDue(t.dueDate, false, t.dueTime).text}</span>}
                 </div>
               )
             })

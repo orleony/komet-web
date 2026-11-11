@@ -10,6 +10,8 @@ export interface TaskSuggestion {
   title: string
   area: Area
   dueDate: Date | null
+  /** Время задачи в минутах от полуночи («в 18:00» → 1080); null — весь день */
+  dueTime: number | null
   priority: Priority
   /** Раздел узнан по словам или моделью, а не взят по умолчанию */
   areaMatched: boolean
@@ -103,6 +105,7 @@ export function tasksFrom(text: string, hints: string[] = [], now = new Date()):
   const cleaned = clean(text)
   const result: TaskSuggestion[] = []
   let carriedDue: Date | null = null
+  let carriedTime: number | null = null
   let carriedPriority = Priority.Normal
   let carriedWeak = false
 
@@ -110,7 +113,8 @@ export function tasksFrom(text: string, hints: string[] = [], now = new Date()):
     const box = { title: piece }
     const priority = extractPriority(box)
     const weak = { value: false }
-    const due = extractDue(box, weak, now)
+    const time = extractTime(box)
+    const due = dayForTime(extractDue(box, weak, now), time, now)
     let title = box.title
     title = replace(title, '\\s{2,}', ' ')
     title = replace(title, '\\s+([,.;:])', '$1')
@@ -119,14 +123,17 @@ export function tasksFrom(text: string, hints: string[] = [], now = new Date()):
     // «1) купить молоко», «- позвонить маме» — номер или маркер списка не нужен в названии
     title = replace(title, '^(?:\\d{1,2}\\)|[-–—•*])\\s*', '')
     title = trimChars(replace(title, leadingWords, ''), ' ,.:;-—!')
-    title = moveTime(title)
     // Остался один предлог («завтра на») — это не задача
     if ([...title].length < 2 || test(title, '^' + leftovers + '$')) {
       if (due) {
         if (!result.length) {
           carriedDue = due
+          carriedTime = time
           carriedWeak = weak.value
-        } else if (!result[result.length - 1].dueDate) result[result.length - 1].dueDate = due
+        } else if (!result[result.length - 1].dueDate) {
+          result[result.length - 1].dueDate = due
+          result[result.length - 1].dueTime = time
+        }
       }
       if (priority !== Priority.Normal) {
         if (!result.length) carriedPriority = priority
@@ -139,12 +146,14 @@ export function tasksFrom(text: string, hints: string[] = [], now = new Date()):
       title: capitalizeFirst(title),
       area: routed.area,
       dueDate: due ?? carriedDue,
+      dueTime: due ? time : carriedTime,
       priority: priority === Priority.Normal ? carriedPriority : priority,
       areaMatched: routed.source.kind !== 'fallback',
       dueIsWeak: due == null ? carriedWeak : weak.value,
       suggest: routed.suggest,
     })
     carriedDue = null
+    carriedTime = null
     carriedPriority = Priority.Normal
   }
   return result
@@ -152,13 +161,44 @@ export function tasksFrom(text: string, hints: string[] = [], now = new Date()):
 
 const leftovers = '(?:на|до|к|ко|в|во|с|со|и|а|по|за|о|об|или)'
 
-/** «В 18:00 сдать лабу» → «сдать лабу в 18:00»: время остаётся, но название начинается с дела. */
-export function moveTime(title: string): string {
-  const m = groups(title, '^((?:в|во|к|ко|до|с|со)\\s+\\d{1,2}[:.]\\d{2}(?:\\s*(?:-|–|—|до)\\s*\\d{1,2}[:.]\\d{2})?)[,\\s]+(\\p{L}.*)$')
-  const rest = m?.values[1] ?? ''
-  // Осталось одно слово-связка («в 18:00 и») или там ещё одно время — не переставляем
-  if (!m || test(rest, '^' + leftovers + '$') || test(rest, '\\d{1,2}[:.]\\d{2}')) return title
-  return `${rest} ${(m.values[0] ?? '').toLowerCase()}`
+/** Время задачи: «в 18:00», «к 9:30», «в 15.30», «с 10:00 до 12:00» (берём начало), «в 7 вечера», «в 9 утра», «в 18 ч».
+ *  Вырезает его из текста; минуты от полуночи или null. «к 12.11» — это дата, не время. */
+export function extractTime(box: { title: string }): number | null {
+  const valid = (h: number, m: number) => (h >= 0 && h <= 23 && m >= 0 && m <= 59 ? h * 60 + m : null)
+  const patterns: [string, (v: (string | undefined)[]) => number | null][] = [
+    // Промежуток: «с 10:00 до 12:00», «10:00-11:30»
+    [word('(?:(?:с|со)\\s+)?(\\d{1,2})[:.](\\d{2})\\s*(?:-|–|—|до)\\s*\\d{1,2}[:.]\\d{2}'), (v) => valid(Number(v[0]), Number(v[1]))],
+    // «в 7 вечера», «в 9 утра», «к 3 часам дня»
+    [word('(?:в|во|к|ко|до|на)\\s+(\\d{1,2})(?:\\s*(?:ч|час\\p{L}*))?\\s+(утра|дня|вечера|ночи)'), (v) => {
+      let h = Number(v[0])
+      const part = (v[1] ?? '').toLowerCase()
+      if ((part === 'вечера' || part === 'дня') && h < 12) h += 12
+      if (part === 'ночи' && h === 12) h = 0
+      return valid(h, 0)
+    }],
+    // «в 18:00», «к 9:30», «18:00»
+    [word('(?:(?:в|во|к|ко|до|с|со|на)\\s+)?(?<![\\d:.])(\\d{1,2}):(\\d{2})(?![\\d:])'), (v) => valid(Number(v[0]), Number(v[1]))],
+    // «в 15.30» — с точкой только после «в»/«с»: «к 12.11» — дата
+    [word('(?:в|во|с|со)\\s+(\\d{1,2})\\.(\\d{2})(?![\\d.])'), (v) => valid(Number(v[0]), Number(v[1]))],
+    // «в 18 ч», «к 9 часам»
+    [word('(?:в|во|к|ко|до)\\s+(\\d{1,2})\\s*(?:ч|час\\p{L}*)\\.?'), (v) => valid(Number(v[0]), 0)],
+  ]
+  for (const [pattern, toMinutes] of patterns) {
+    const m = groups(box.title, pattern)
+    if (!m) continue
+    const minutes = toMinutes(m.values)
+    if (minutes == null) continue
+    box.title = box.title.slice(0, m.start) + ' ' + box.title.slice(m.end)
+    return minutes
+  }
+  return null
+}
+
+/** Время без даты — сегодня, а если оно уже прошло — завтра. */
+function dayForTime(due: Date | null, time: number | null, now: Date): Date | null {
+  if (due || time == null) return due
+  const minute = now.getHours() * 60 + now.getMinutes()
+  return time > minute ? startOfToday(now) : addDays(startOfToday(now), 1)
 }
 
 /** «!!» / «важно» → важная, «!!!» / «срочно» → срочная. «Срочно» остаётся — это ещё и срок «сегодня». */
@@ -366,11 +406,12 @@ export function analyze(raw: string, studyHints: string[] = [], now = new Date()
     const box = { title: text }
     const priority = extractPriority(box)
     const weak = { value: false }
-    const due = extractDue(box, weak, now)
+    const time = extractTime(box)
+    const due = dayForTime(extractDue(box, weak, now), time, now)
     let title = trimChars(box.title, ' ,.:;-—')
     if (!title || test(title, '^' + leftovers + '$')) title = text
     const routed = router.route(title, studyHints)
-    tasks = [{ title: capitalizeFirst(title), area: routed.area, dueDate: due, priority, areaMatched: routed.source.kind !== 'fallback', dueIsWeak: weak.value, suggest: routed.suggest }]
+    tasks = [{ title: capitalizeFirst(title), area: routed.area, dueDate: due, dueTime: due ? time : null, priority, areaMatched: routed.source.kind !== 'fallback', dueIsWeak: weak.value, suggest: routed.suggest }]
   }
   if (forced) return { kind: forced, tasks }
 

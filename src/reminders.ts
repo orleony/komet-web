@@ -48,10 +48,30 @@ export function buildReminders(now = new Date()): Reminder[] {
     }
   }
 
+  // Задачи ко времени: за timedLead минут до срока
+  if (p.timed) {
+    for (const t of plan) {
+      if (t.dueTime == null) continue
+      const area = store.areaOf(t).title
+      const lead = p.timedLead
+      items.push({
+        at: at(toDate(t.dueDate)!, t.dueTime - lead),
+        title: (lead ? `Через ${lead} мин` : `Сейчас, ${time(t.dueTime)}`) + ` · ${area}`,
+        body: t.title,
+        tag: `time-${t.id}`,
+      })
+    }
+  }
+
   if (p.deadlines) {
     for (const t of plan) {
       const due = toDate(t.dueDate)!
       const area = store.areaOf(t).title
+      // У задачи ко времени — время в заголовке и без напоминания «в день»: о ней напомнит «Задачи ко времени»
+      if (t.dueTime != null) {
+        if (p.deadlineWhen !== 'same') items.push({ at: at(due, p.deadlineTime - 24 * 60), title: `Завтра в ${time(t.dueTime)} · ${area}`, body: t.title, tag: `due-${t.id}` })
+        continue
+      }
       // Заголовок — когда срок и раздел, текст — сама задача
       if (p.deadlineWhen !== 'same') items.push({ at: at(due, p.deadlineTime - 24 * 60), title: `Завтра срок · ${area}`, body: t.title, tag: `due-${t.id}` })
       if (p.deadlineWhen !== 'before') items.push({ at: at(due, p.deadlineTime), title: `Сегодня срок · ${area}`, body: t.title, tag: `due-today-${t.id}` })

@@ -29,6 +29,9 @@ export interface Prefs {
   scheduleSetupDismissed: boolean
   /** Пары — списком по дням или сеткой */
   scheduleView: 'list' | 'grid'
+  /** Напоминать о задачах со временем и за сколько минут */
+  timed: boolean
+  timedLead: number
   /** Выходные, добавленные в расписание вручную (6 — суббота, 7 — воскресенье), даже если пар пока нет */
   scheduleWeekend: number[]
 }
@@ -36,7 +39,7 @@ export interface Prefs {
 const defaultPrefs: Prefs = {
   morning: true, morningTime: 8 * 60, classes: true, classLead: 10, deadlines: true, deadlineWhen: 'before',
   deadlineTime: 19 * 60, cleanup: 'weekly', trashDays: 30, mlEnabled: true,
-  showSchedule: true, scheduleSetupDismissed: false, scheduleView: 'grid', scheduleWeekend: [],
+  showSchedule: true, scheduleSetupDismissed: false, scheduleView: 'grid', scheduleWeekend: [], timed: true, timedLead: 15,
 }
 
 function loadPrefs(): Prefs {
@@ -373,6 +376,8 @@ export const trash = () => data.value.tasks.filter((t) => live(t) && t.trashedAt
 function byDue(a: TaskItem, b: TaskItem): number {
   if (a.dueDate != null && b.dueDate != null) {
     if (a.dueDate !== b.dueDate) return a.dueDate - b.dueDate
+    // В один день: сначала со временем, по порядку; потом на весь день
+    if ((a.dueTime ?? null) !== (b.dueTime ?? null)) return a.dueTime == null ? 1 : b.dueTime == null ? -1 : a.dueTime - b.dueTime
     if (a.priority !== b.priority) return b.priority - a.priority
     return a.createdAt - b.createdAt
   }
@@ -419,11 +424,11 @@ export function buckets(open: TaskItem[]): { title: string; items: TaskItem[] }[
   return g.filter(([, items]) => items.length).map(([title, items]) => ({ title, items }))
 }
 
-export function addTask(title: string, areaID: string, due: Date | null, priority = Priority.Normal) {
+export function addTask(title: string, areaID: string, due: Date | null, priority = Priority.Normal, time: number | null = null) {
   const t = title.trim()
   if (!t) return
   const now = nowSec()
-  const task: TaskItem = { id: uuid(), title: t, details: '', areaID, dueDate: toSec(due), isDone: false, doneAt: null, createdAt: now, updatedAt: now, priority, trashedAt: null }
+  const task: TaskItem = { id: uuid(), title: t, details: '', areaID, dueDate: toSec(due), dueTime: due ? time : null, isDone: false, doneAt: null, createdAt: now, updatedAt: now, priority, trashedAt: null }
   commit({ tasks: [...data.value.tasks, task] })
 }
 
