@@ -39,7 +39,8 @@ export function TaskRow({ task }: { task: TaskItem }) {
   const area = store.areaOf(task)
   const color = areaColor(area)
   const due = toDate(task.dueDate)
-  const info = due ? describeDue(due, task.isDone, task.dueTime ?? null) : null
+  // Текущее время из часов приложения: подпись и раздел («Сегодня»/«Просрочено») меняются одновременно
+  const info = due ? describeDue(due, task.isDone, task.dueTime ?? null, store.clock.value) : null
   return (
     <div class={'task' + (checking ? ' checking' : '')}>
       <button class={'check' + (done ? ' on' : '')} onClick={toggle} aria-label="Готово">

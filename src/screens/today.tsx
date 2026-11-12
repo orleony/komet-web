@@ -143,7 +143,7 @@ function NowCard() {
 }
 
 function TaskCard({ task }: { task: TaskItem }) {
-  const due = describeDue(toDate(task.dueDate)!, false, task.dueTime ?? null)
+  const due = describeDue(toDate(task.dueDate)!, false, task.dueTime ?? null, store.clock.value)
   return (
     <div class="card row" style={{ padding: 18, borderRadius: 20 }}>
       <div class="grow">

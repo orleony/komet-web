@@ -59,7 +59,17 @@ async function subscription(): Promise<PushSubscription> {
 
 /** Включить напоминания: разрешение, подписка, первое расписание. Вызывать по нажатию кнопки. */
 export async function enablePush(): Promise<void> {
-  await syncing
+  paused = true
+  again = false
+  try {
+    await syncing
+    await enable()
+  } finally {
+    paused = false
+  }
+}
+
+async function enable(): Promise<void> {
   // Старое устройство на сервере — убираем, чтобы напоминания не приходили дважды
   const old = loadDevice()
   if (old) await api(`/devices/${old.id}`, 'DELETE', { token: old.token }).catch(() => {})
@@ -76,7 +86,17 @@ export async function enablePush(): Promise<void> {
 }
 
 export async function disablePush(): Promise<void> {
-  await syncing
+  paused = true
+  again = false
+  try {
+    await syncing
+    await disable()
+  } finally {
+    paused = false
+  }
+}
+
+async function disable(): Promise<void> {
   const device = loadDevice()
   if (device) await api(`/devices/${device.id}`, 'DELETE', { token: device.token }).catch(() => {})
   saveDevice(null)
@@ -97,7 +117,10 @@ let syncing: Promise<void> | null = null
 
 /** Отправить серверу свежее расписание (через пару секунд после правок). */
 let again = false
+/** Пока включаем или выключаем напоминания, фоновые отправки не начинаются — иначе гонка за устройство на сервере */
+let paused = false
 function syncReminders(): Promise<void> {
+  if (paused) return Promise.resolve()
   // Уже отправляем — после неё отправим ещё раз со свежими данными (правка могла прийти посреди отправки)
   if (syncing) {
     again = true
@@ -105,7 +128,7 @@ function syncReminders(): Promise<void> {
   }
   syncing = doSync().catch(() => {}).finally(() => {
     syncing = null
-    if (again) {
+    if (again && !paused) {
       again = false
       syncReminders()
     }

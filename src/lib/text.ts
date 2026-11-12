@@ -2,7 +2,7 @@
 import { Priority } from '../model'
 import type { Area } from '../model'
 import type { AreaTemplate } from './templates'
-import { addDays, addMonths, dayOffset, endOfWeek, isoWeekday, nextWeekday, startOfToday, startOfWeek } from './dates'
+import { addDays, addMonths, dayOffset, daysLeft, endOfWeek, isoWeekday, nextWeekday, startOfToday, startOfWeek } from './dates'
 import { normalize } from './keywords'
 import { router } from './router'
 
@@ -86,12 +86,31 @@ export function clean(text: string): string {
 
 const separators =
   '(?:[?;]+|(?<!(?:^|[^\\p{L}])(?:ауд|ул|д|стр|г|кв|корп|каб|пр|т\\.е|т\\.к|им|см|ст|доц|проф|преп|тел|\\p{Lu}))\\.+)(?=\\s|$)|\\n+|(?:,\\s*(?:а\\s+|и\\s+)?|\\s+(?:а|и)\\s+)(?:ещё|еще|также|потом|плюс)(?![\\p{L}])' +
-  '|\\s+(?:потом|затем)\\s+(?=\\p{L})' +
-  // «в 18:00 сдать лабу, в 19:00 в зал», «… и в 7 вечера …» — две задачи
-  '|(?:,\\s*|\\s+и\\s+)(?=(?:в|во|к|ко|до|с|со)\\s+\\d{1,2}(?:[:.]\\d{2}(?![\\d.])|\\s+(?:утра|дня|вечера|ночи)(?![\\p{L}])))' +
-  // «в пятницу в 18:00 и в субботу в 12:00», «завтра в 18:00, послезавтра в 19:00»
-  '|(?:,\\s*|\\s+и\\s+)(?=(?:в|во|на)\\s+(?:понедельник|вторник|среду|четверг|пятницу|субботу|воскресенье)(?![\\p{L}]))' +
-  '|,\\s*(?=(?:завтра|послезавтра|сегодня)(?![\\p{L}]))'
+  '|\\s+(?:потом|затем)\\s+(?=\\p{L})'
+
+// Внутри одной фразы делим по времени и дням, только если их там несколько:
+// «в 18:00 сдать лабу, в 19:00 в зал» — две задачи, а «встреча с Петей, в 18:00 у метро» — одна
+const timeMark = '(?<![\\p{L}\\d])\\d{1,2}(?:[:.]\\d{2}(?!\\d)|\\s+(?:утра|дня|вечера|ночи)(?![\\p{L}])|\\s*(?:ч|час\\p{L}*)(?![\\p{L}]))'
+const dayMark = '(?<![\\p{L}])(?:понедельник|вторник|среду|четверг|пятницу|субботу|воскресенье|завтра|послезавтра|сегодня)(?![\\p{L}])'
+const timeSplit = '(?:,\\s*|\\s+(?:и|или)\\s+)(?=(?:в|во|к|ко|до|с|со)\\s+\\d{1,2}(?:[:.]\\d{2}(?!\\d)|\\s+(?:утра|дня|вечера|ночи)(?![\\p{L}])|\\s*(?:ч|час\\p{L}*)(?![\\p{L}])))'
+const daySplit = '(?:,\\s*|\\s+(?:и|или)\\s+)(?=(?:(?:в|во|на)\\s+(?:понедельник|вторник|среду|четверг|пятницу|субботу|воскресенье)|завтра|послезавтра|сегодня)(?![\\p{L}]))'
+
+/** Части фразы с несколькими временами или днями: «пить таблетки в 8:00 и в 20:00» → две части */
+function splitMulti(piece: string): string[] {
+  const count = (pattern: string) => [...piece.matchAll(rx(pattern, 'giu'))].length
+  const parts: string[] = []
+  if (count(timeMark) >= 2) parts.push(timeSplit)
+  if (count(dayMark) >= 2) parts.push(daySplit)
+  return parts.length ? split(piece, parts.join('|')) : [piece]
+}
+
+/** «Сегодня в 15:00 сходил к врачу», «вчера был концерт» — запись о прошлом, а не дело */
+function aboutPast(text: string): boolean {
+  if (test(text, word('вчера|позавчера'))) return true
+  if (!test(text, word('сегодня'))) return false
+  return normalize(text).split(/[^\p{L}]+/u).some((w) =>
+    /^(?:был|была|было|были)$/.test(w) || (/^\p{L}{2,}(?:ал|ял|ел|ил|ыл|ул)(?:а|и|о)?(?:сь|ся)?$/u.test(w) && !/(?:иал|нал|кал|вал|зал|бал|тал)$/.test(w)))
+}
 
 const leadingWords =
   '^(?:(?:и|а|ну|так|ещё|еще|потом|затем|также|плюс|мне|я|надо бы|надо|нужно бы|нужно|не забыть|не забудь(?:те)?|хочу|хотелось бы|обязательно|должен|должна)(?![\\p{L}])[,\\s]*)+'
@@ -113,64 +132,91 @@ export function tasksFrom(text: string, hints: string[] = [], now = new Date()):
   let carriedWeak = false
   /** «В пятницу:» отдельной строкой — день для всех задач ниже, до следующего такого заголовка */
   let sticky = false
+  const past = aboutPast(cleaned)
+  const nowMinute = now.getHours() * 60 + now.getMinutes()
 
-  for (const piece of split(cleaned, separators)) {
-    const box = { title: piece }
-    const priority = extractPriority(box)
-    const weak = { value: false }
-    const time = extractTime(box)
-    const ownDue = extractDue(box, weak, now)
-    // «Сегодня в 18:00 тренировка» — со временем это уже дело, а не дневниковая запись
-    if (time != null) weak.value = false
-    let title = box.title
-    title = replace(title, '\\s{2,}', ' ')
-    title = replace(title, '\\s+([,.;:])', '$1')
-    title = replace(title, ',{2,}', ',')
-    title = replace(title, '(?:\\s*,){2,}', ',').trim()
-    // «1) купить молоко», «- позвонить маме» — номер или маркер списка не нужен в названии
-    title = replace(title, '^(?:\\d{1,2}\\)|[-–—•*])\\s*', '')
-    title = trimChars(replace(title, leadingWords, ''), ' ,.:;-—!')
-    // Остался один предлог («завтра на») — это не задача
-    if ([...title].length < 2 || test(title, '^' + leftovers + '$')) {
-      const due = dayForTime(ownDue, time, now)
-      if (due) {
-        const heading = /:\s*$/.test(piece)
-        if (!result.length || heading) {
-          carriedDue = due
-          carriedTime = time
-          carriedWeak = weak.value
-          sticky = heading
-        } else if (!result[result.length - 1].dueDate) {
-          result[result.length - 1].dueDate = due
-          result[result.length - 1].dueTime = time
+  for (const whole of split(cleaned, separators)) {
+    const parts = splitMulti(whole)
+    /** Дни и времена без дела внутри одной фразы: «в пятницу и в субботу концерты» — концерты в оба дня */
+    const pending: { date: Date | null; time: number | null }[] = []
+    let groupFirst = result.length
+
+    for (const piece of parts) {
+      const box = { title: piece }
+      const priority = extractPriority(box)
+      const weak = { value: false }
+      const time = extractTime(box)
+      let ownDue = extractDue(box, weak, now)
+      // «Сегодня в 3 ночи» вечером — это ближайшая ночь, а не прошедшая
+      if (ownDue && weak.value && time != null && time < 6 * 60 && time <= nowMinute && daysLeft(ownDue, now) === 0) ownDue = addDays(ownDue, 1)
+      // «Сегодня в 18:00 тренировка» — со временем это уже дело, а не дневниковая запись (кроме записей о прошлом)
+      if (time != null && !past) weak.value = false
+      let title = box.title
+      title = replace(title, '\\s{2,}', ' ')
+      title = replace(title, '\\s+([,.;:])', '$1')
+      title = replace(title, ',{2,}', ',')
+      title = replace(title, '(?:\\s*,){2,}', ',').trim()
+      // «1) купить молоко», «- позвонить маме» — номер или маркер списка не нужен в названии
+      title = replace(title, '^(?:\\d{1,2}\\)|[-–—•*])\\s*', '')
+      title = trimChars(replace(title, leadingWords, ''), ' ,.:;-—!')
+      // Остался один предлог («завтра на») — это не задача
+      if ([...title].length < 2 || test(title, '^' + leftovers + '$')) {
+        if (parts.length > 1 && (ownDue || time != null)) {
+          // Внутри фразы: «… в 8:00 и в 20:00» — та же задача ещё раз; «в 7 утра и в 7 вечера …» — запомним для дела ниже
+          const prev = result.length > groupFirst ? result[result.length - 1] : null
+          if (prev) {
+            const due = dayForTime(ownDue, time, now)
+            result.push({ ...prev, dueDate: due, dueTime: due ? time : null })
+          } else pending.push({ date: ownDue, time })
+          continue
+        }
+        const due = dayForTime(ownDue, time, now)
+        if (due) {
+          const heading = /:\s*$/.test(piece)
+          if (!result.length || heading) {
+            carriedDue = due
+            carriedTime = time
+            carriedWeak = weak.value
+            sticky = heading
+          } else if (!result[result.length - 1].dueDate) {
+            result[result.length - 1].dueDate = due
+            result[result.length - 1].dueTime = time
+          }
+        }
+        if (priority !== Priority.Normal) {
+          if (!result.length) carriedPriority = priority
+          else result[result.length - 1].priority = priority
+        }
+        continue
+      }
+      const routed = router.route(title, hints)
+      const make = (date: Date | null, t: number | null, weakDue: boolean): TaskSuggestion => {
+        const due = dayForTime(date, t, now)
+        return {
+          title: capitalizeFirst(title),
+          area: routed.area,
+          dueDate: due,
+          dueTime: due ? t : null,
+          priority: priority === Priority.Normal ? carriedPriority : priority,
+          areaMatched: routed.source.kind !== 'fallback',
+          dueIsWeak: weakDue,
+          suggest: routed.suggest,
         }
       }
-      if (priority !== Priority.Normal) {
-        if (!result.length) carriedPriority = priority
-        else result[result.length - 1].priority = priority
+      // Дни и времена выше в этой же фразе — то же дело и в них
+      for (const p of pending) result.push(make(p.date ?? ownDue, p.time ?? (p.date ? null : time), false))
+      pending.length = 0
+      // Свой день, иначе день заголовка («в пятницу:» выше), иначе по времени — сегодня или завтра
+      const day = ownDue ?? carriedDue
+      const dueTime = time ?? (ownDue ? null : carriedTime)
+      result.push(make(day, dueTime, ownDue == null && time == null ? carriedWeak : weak.value))
+      if (!sticky) {
+        carriedDue = null
+        carriedTime = null
       }
-      continue
+      carriedPriority = Priority.Normal
     }
-    const routed = router.route(title, hints)
-    // Свой день, иначе день заголовка («в пятницу:» выше), иначе по времени — сегодня или завтра
-    const day = ownDue ?? carriedDue
-    const dueTime = time ?? (ownDue ? null : carriedTime)
-    const due = dayForTime(day, dueTime, now)
-    result.push({
-      title: capitalizeFirst(title),
-      area: routed.area,
-      dueDate: due,
-      dueTime: due ? dueTime : null,
-      priority: priority === Priority.Normal ? carriedPriority : priority,
-      areaMatched: routed.source.kind !== 'fallback',
-      dueIsWeak: ownDue == null && time == null ? carriedWeak : weak.value,
-      suggest: routed.suggest,
-    })
-    if (!sticky) {
-      carriedDue = null
-      carriedTime = null
-    }
-    carriedPriority = Priority.Normal
+    groupFirst = result.length
   }
   return result
 }
@@ -198,16 +244,17 @@ export function extractTime(box: { title: string }): number | null {
   const part = '(?:\\s+(утра|дня|вечера|ночи)(?![\\p{L}]))?'
   const patterns: [string, (v: (string | undefined)[]) => number | null][] = [
     // Промежуток: «с 10:00 до 12:00», «10:00-11:30», «с 10.10 до 11.45»; «12.11-15.11» — это даты
-    [word('(?:(?:с|со)\\s+)?(\\d{1,2})([:.])(\\d{2})\\s*(?:-|–|—|до)\\s*(\\d{1,2})([:.])(\\d{2})(?![\\d.])'), (v) => {
+    [word('(?:(?:с|со|в|во|между)\\s+)?(\\d{1,2})([:.])(\\d{2})\\s*(?:-|–|—|до|и)\\s*(\\d{1,2})([:.])(\\d{2})(?!\\d)(?![:.]\\d)'), (v) => {
       const [a, sa, b, c, sc, d] = [Number(v[0]), v[1], Number(v[2]), Number(v[3]), v[4], Number(v[5])]
       if ((sa === '.' || sc === '.') && dateLike(a, b) && dateLike(c, d)) return null
       return valid(a, b)
     }],
     // «в 18:00», «к 9:30», «18:00», «в 7:30 вечера», «к 18.00»
-    [word(`(${prep}\\s+)?(?<![\\d:.])(\\d{1,2})([:.])(\\d{2})(?![\\d:.])${part}`), (v) => {
+    [word(`(${prep}\\s+)?(?<![\\d:.])(\\d{1,2})([:.])(\\d{2})(?!\\d)(?![:.]\\d)${part}`), (v) => {
       const [p, h, sep, m] = [v[0], Number(v[1]), v[2], Number(v[3])]
-      // С точкой — только после предлога и не дата («версия 1.10», «к 12.11»)
-      if (sep === '.' && (!p || (dateLike(h, m) && !v[4]))) return null
+      // С точкой — только после предлога: «в 9.10 пара» — время; «к 12.11», «с 15.11», «до 01.12» — даты; «версия 1.10» — ничего
+      const timePrep = /^(?:в|во)\s/iu.test(p ?? '')
+      if (sep === '.' && (!p || (!timePrep && dateLike(h, m) && !v[4]))) return null
       return valid(partOfDay(h, v[4]), m)
     }],
     // «в 7 вечера», «в 9 утра», «к 3 часам дня»
@@ -215,13 +262,14 @@ export function extractTime(box: { title: string }): number | null {
     // «в 18 ч», «к 9 часам», «в 18 часов 30 минут»
     [word('(?:в|во|к|ко|до)\\s+(\\d{1,2})\\s*(?:ч|час\\p{L}*)\\.?(?:\\s*(\\d{1,2})\\s*(?:мин\\p{L}*|м)\\.?)?'), (v) => valid(Number(v[0]), Number(v[1] ?? 0))],
   ]
+  // Каждое совпадение по очереди: «сдать до 01.12 в 18:00» — «01.12» дата, время — дальше
   for (const [pattern, toMinutes] of patterns) {
-    const m = groups(box.title, pattern)
-    if (!m) continue
-    const minutes = toMinutes(m.values)
-    if (minutes == null) continue
-    box.title = box.title.slice(0, m.start) + ' ' + box.title.slice(m.end)
-    return minutes
+    for (const m of box.title.matchAll(rx(pattern, 'giu'))) {
+      const minutes = toMinutes(m.slice(1))
+      if (minutes == null) continue
+      box.title = box.title.slice(0, m.index!) + ' ' + box.title.slice(m.index! + m[0].length)
+      return minutes
+    }
   }
   return null
 }
@@ -443,7 +491,7 @@ export function analyze(raw: string, studyHints: string[] = [], now = new Date()
     let title = trimChars(box.title, ' ,.:;-—')
     if (!title || test(title, '^' + leftovers + '$')) title = text
     const routed = router.route(title, studyHints)
-    tasks = [{ title: capitalizeFirst(title), area: routed.area, dueDate: due, dueTime: due ? time : null, priority, areaMatched: routed.source.kind !== 'fallback', dueIsWeak: time == null && weak.value, suggest: routed.suggest }]
+    tasks = [{ title: capitalizeFirst(title), area: routed.area, dueDate: due, dueTime: due ? time : null, priority, areaMatched: routed.source.kind !== 'fallback', dueIsWeak: (time == null || aboutPast(text)) && weak.value, suggest: routed.suggest }]
   }
   if (forced) return { kind: forced, tasks }
 
@@ -455,8 +503,10 @@ export function analyze(raw: string, studyHints: string[] = [], now = new Date()
 
   let kind: CaptureKind
   // Есть время («в 10:00 зачёт») — это дела, даже без глаголов
-  const timed = tasks.some((t) => t.dueTime != null)
+  const timed = tasks.some((t) => t.dueTime != null) && !aboutPast(text)
   if (timed) kind = 'task'
+  // «Вчера в 19:00 был концерт», «сегодня сходил к врачу» — без дел это дневник
+  else if (aboutPast(text) && actionLines === 0) kind = 'note'
   else if (lines.length >= 2 && actionLines === 0 && !areaMatched) kind = 'note'
   else if (hasDue || important || (actionLines > 0 && actionLines * 2 >= lines.length)) kind = 'task'
   else if (lines.length >= 2) kind = 'note'

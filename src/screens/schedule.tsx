@@ -161,10 +161,12 @@ function ClassEditor({ slot, isNew, onClose }: { slot: ClassSlot; isNew: boolean
   const [s, setS] = useState(slot)
   const set = <K extends keyof ClassSlot>(k: K, v: ClassSlot[K]) => setS((prev) => ({ ...prev, [k]: v }))
   // Аудитория без цифр или препод не полностью — сначала поправить
-  const invalid = fieldInvalid(s.room, isNew ? '' : slot.room, roomProblem) || fieldInvalid(s.teacher, isNew ? '' : slot.teacher, teacherProblem)
+  // Конец раньше начала — не сохраняем молча пару на 5 минут, а просим поправить
+  const badTime = s.endMin <= s.startMin
+  const invalid = badTime || fieldInvalid(s.room, isNew ? '' : slot.room, roomProblem) || fieldInvalid(s.teacher, isNew ? '' : slot.teacher, teacherProblem)
   const save = () => {
     if (invalid) return
-    store.saveClass({ ...s, title: s.title.trim(), endMin: Math.max(s.endMin, s.startMin + 5) })
+    store.saveClass({ ...s, title: s.title.trim() })
     sheet.close()
   }
   return (
@@ -193,6 +195,7 @@ function ClassEditor({ slot, isNew, onClose }: { slot: ClassSlot; isNew: boolean
           <div class="field"><input type="time" value={toTime(s.endMin)} onInput={(e) => { const m = fromTime(e.currentTarget.value); if (m != null) set('endMin', m) }} /></div>
         </div>
       </div>
+      {badTime && <div class="field-problem">Конец пары раньше начала — поправь время</div>}
       <TeacherField value={s.teacher} original={isNew ? '' : slot.teacher} subject={s.title} onChange={(v) => set('teacher', v)} />
       <RoomField value={s.room} original={isNew ? '' : slot.room} onChange={(v) => set('room', v)} />
       <KindSelect value={s.kind} onChange={(v) => set('kind', v)} />

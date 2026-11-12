@@ -55,13 +55,22 @@ export function buildReminders(now = new Date()): Reminder[] {
       const area = store.areaOf(t).title
       const lead = p.timedLead
       const dueAt = at(toDate(t.dueDate)!, t.dueTime)
-      // Задачу поставили меньше чем за lead минут — напоминаем через минуту, пока срок не прошёл
       const remindAt = at(toDate(t.dueDate)!, t.dueTime - lead)
       const nowSec = now.getTime() / 1000
       if (dueAt <= nowSec) continue
+      let fireAt = remindAt
+      if (remindAt <= nowSec) {
+        // Задачу поставили или поменяли, когда до срока было меньше lead минут, — напоминаем через минуту после этого.
+        // Время привязано к правке, а не к «сейчас»: следующая отправка не создаст повтор
+        if (t.updatedAt < remindAt) continue
+        fireAt = Math.min(t.updatedAt + 60, dueAt)
+        if (fireAt <= nowSec) continue
+      }
+      // Сколько на самом деле осталось
+      const left = Math.round((dueAt - fireAt) / 60)
       items.push({
-        at: remindAt > nowSec ? remindAt : nowSec + 60,
-        title: (lead ? `Через ${lead} мин` : `Сейчас, ${time(t.dueTime)}`) + ` · ${area}`,
+        at: fireAt,
+        title: (left > 0 ? `Через ${left} мин` : `Сейчас, ${time(t.dueTime)}`) + ` · ${area}`,
         body: t.title,
         tag: `time-${t.id}`,
       })

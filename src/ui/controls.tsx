@@ -125,7 +125,7 @@ export function describeDue(date: Date, isDone = false, time: number | null = nu
 const clock = (m: number) => `${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')}`
 
 function describeDay(date: Date, isDone: boolean): { text: string; color: string } {
-  if (isDone) return { text: relativeDay(date), color: 'var(--secondary)' }
+  if (isDone) return { text: relativeDay(date).toLowerCase(), color: 'var(--secondary)' }
   const days = daysLeft(date)
   const weekday = weekdayShort[isoWeekday(date) - 1].toLowerCase()
   const n = (d: number) => `${d} ${plural(d, 'день', 'дня', 'дней')}`

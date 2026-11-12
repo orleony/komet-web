@@ -195,7 +195,7 @@ function SettingsPage() {
           </div>
         ))}
         <Toggle on={p.mlEnabled} onChange={(v) => store.setPref('mlEnabled', v)} title="Умное распределение"
-          subtitle={router.trainedExamples ? `Учится на твоих задачах прямо на телефоне · ${router.trainedExamples} примеров` : 'Начнёт помогать, когда наберётся пара задач в двух разделах'} />
+          subtitle={router.trainedExamples ? `Знает готовые разделы и учится на твоих задачах прямо на телефоне · ${router.trainedExamples} ${plural(router.trainedExamples, 'пример', 'примера', 'примеров')}` : 'Начнёт помогать, когда наберётся пара задач в двух разделах'} />
         <div class="field">
           <input placeholder="Проверь фразу: «сходить на тренировку»" value={probe} onInput={(e) => setProbe(e.currentTarget.value)} />
           {result && <span class="chip" style={{ color: areaColor(result.area), background: tint(areaColor(result.area), 0.16) }}>→ {result.area.title}</span>}

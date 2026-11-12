@@ -31,7 +31,7 @@ function TimeInput({ value, onChange }: { value: number; onChange: (m: number) =
 
 /** Карточка, пока расписания нет: три способа его завести — или «не учусь». */
 export function ScheduleSetup({ onBells, onPaste, onCalendar }: { onBells: () => void; onPaste: () => void; onCalendar: () => void }) {
-  if (store.classes().length || store.prefs.value.scheduleSetupDismissed) return null
+  if (store.classes().length || store.hasBells() || store.prefs.value.scheduleSetupDismissed) return null
   return (
     <div class="card section">
       <div class="row">
@@ -175,7 +175,7 @@ export function ScheduleGrid({ shown, onDayBells }: { shown: WeekParity | null; 
 
   return (
     <div class="section">
-      {offDays.length > 0 && (
+      {offDays.length > 0 && bells.length > 0 && (
         // Пары дня не попадают в общие звонки — у этого дня своё время (ВУЦ, физра, другой корпус)
         <div class="card section" style={{ border: '1.5px solid rgba(99,168,255,0.45)' }}>
           <div>
@@ -191,7 +191,7 @@ export function ScheduleGrid({ shown, onDayBells }: { shown: WeekParity | null; 
           </div>
         </div>
       )}
-      {!rows && <div class="empty">Сначала задай звонки — кнопка «Звонки» сверху</div>}
+      {!rows && <div class="empty">Сначала задай звонки: значок настроек сверху справа → «Звонки»</div>}
       {rows > 0 && <div class="grid-wrap">
         <div class="sgrid" style={{ gridTemplateColumns: `34px repeat(${days.length}, 1fr)` }}>
           <div />
@@ -465,7 +465,7 @@ function CellEditor({ day, slot, index, onClose }: { day: number; slot: BellSlot
       {!split && inCell.some((c) => c.parity !== 'every' && !every.some((e) => e.id === c.id)) && (
         <div class="hint">Уберутся из клетки: {inCell.filter((c) => c.parity !== 'every' && !every.some((e) => e.id === c.id)).map((c) => c.title).join(', ')}</div>
       )}
-      {split && inCell.some((c) => c.parity === 'every') && (
+      {split && inCell.some((c) => c.parity === 'every' && ![...num, ...den].some((e) => e.id === c.id)) && (
         <div class="hint">Останутся каждую неделю: {inCell.filter((c) => c.parity === 'every' && ![...num, ...den].some((e) => e.id === c.id)).map((c) => c.title).join(', ')}</div>
       )}
       {split && (
