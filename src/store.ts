@@ -396,6 +396,13 @@ export const doneTasks = (areaID?: string) =>
 /** Все задачи со сроком — чем ближе дата, тем выше. */
 export const plan = () => openTasks().filter((t) => t.dueDate != null)
 export const undated = () => openTasks().filter((t) => t.dueDate == null)
+/** Просрочена: день прошёл, или сегодня, но время задачи уже вышло (была на 7:05, сейчас 8:55) */
+export function isOverdue(t: TaskItem, now = clock.value): boolean {
+  if (t.dueDate == null || t.isDone) return false
+  const days = daysLeft(toDate(t.dueDate)!, now)
+  return days < 0 || (days === 0 && t.dueTime != null && t.dueTime <= now.getHours() * 60 + now.getMinutes())
+}
+
 export const urgentCount = () => plan().filter((t) => daysLeft(toDate(t.dueDate)!) <= 1).length
 export const doneToday = () => doneTasks().filter((t) => t.doneAt != null && daysLeft(toDate(t.doneAt)!) === 0)
 
@@ -403,7 +410,7 @@ export function planByDay(): { title: string; items: TaskItem[] }[] {
   const groups: { title: string; items: TaskItem[] }[] = []
   for (const t of plan()) {
     const due = toDate(t.dueDate)!
-    const title = daysLeft(due) < 0 ? 'Просрочено' : dayHeader(due)
+    const title = isOverdue(t) ? 'Просрочено' : dayHeader(due)
     if (groups.length && groups[groups.length - 1].title === title) groups[groups.length - 1].items.push(t)
     else groups.push({ title, items: [t] })
   }
@@ -418,7 +425,7 @@ export function buckets(open: TaskItem[]): { title: string; items: TaskItem[] }[
   for (const t of open) {
     const d = t.dueDate
     if (d == null) g[4][1].push(t)
-    else if (d < today) g[0][1].push(t)
+    else if (d < today || isOverdue(t)) g[0][1].push(t)
     else if (d < tomorrow) g[1][1].push(t)
     else if (d < week) g[2][1].push(t)
     else g[3][1].push(t)

@@ -17,8 +17,9 @@ export function Today() {
   const done = store.doneToday()
 
   // На «Сегодня» — только то, что горит: просрочено, сегодня, завтра
-  const overdue = plan.filter((t) => daysLeft(toDate(t.dueDate)!) < 0)
-  const today = plan.filter((t) => daysLeft(toDate(t.dueDate)!) === 0)
+  // Время задачи вышло — она уже в «Просрочено», даже если день сегодняшний
+  const overdue = plan.filter((t) => store.isOverdue(t, now))
+  const today = plan.filter((t) => daysLeft(toDate(t.dueDate)!) === 0 && !store.isOverdue(t, now))
   const tomorrow = plan.filter((t) => daysLeft(toDate(t.dueDate)!) === 1)
   const later = plan.filter((t) => daysLeft(toDate(t.dueDate)!) > 1)
   const restCount = later.length + undated.length
